@@ -63,6 +63,9 @@
           <button id="tab-world" class="tab-btn">
             <span class="tab-icon">🏫</span> Patio y Pistas del IES
           </button>
+          <button id="tab-levels" class="tab-btn">
+            <span class="tab-icon">🎮</span> Campaña de Niveles
+          </button>
         </div>
       </nav>
       
@@ -95,6 +98,23 @@
             <button class="btn btn-option" data-accessory="glasses">Gafas</button>
             <button class="btn btn-option" data-accessory="cap">Gorra</button>
             <button class="btn btn-option" data-accessory="backpack">Mochila</button>
+          </div>
+        </section>
+
+        <!-- Tienda de accesorios: se pagan con las monedas del alumno -->
+        <section class="panel-section" id="accessory-shop">
+          <h2>Tienda de Accesorios</h2>
+          <p class="shop-description">
+            Gasta tus monedas en los accesorios del uniforme. Cada compra es única y se
+            equipa al instante en tu avatar.
+          </p>
+          <div class="shop-balance">
+            <span class="coin-icon">🪙</span>
+            <span id="shop-coins">50</span>
+            <span class="shop-balance-label">monedas disponibles</span>
+          </div>
+          <div id="shop-items-list" class="shop-items-list">
+            <!-- Las filas se generan desde SHOP_ITEMS -->
           </div>
         </section>
 
@@ -137,6 +157,58 @@
           <button id="btn-interact" class="btn btn-success btn-pulse">
             Entrar / Hablar (E)
           </button>
+        </div>
+      </div>
+
+      <!-- HUD de la Campaña de Niveles (arenas) -->
+      <div id="level-hud" class="hud hidden">
+        <div class="level-hud-inner">
+          <div class="level-hud-header">
+            <h3 id="level-name">Nivel</h3>
+            <span class="objective-chip" id="level-objective">Objetivo</span>
+          </div>
+          <div class="level-hud-stats">
+            <span class="level-stat" id="level-tokens" hidden>🪙 <strong>0/0</strong></span>
+            <span class="level-stat" id="level-bodies" hidden>🧍 <strong>0/0</strong></span>
+            <span class="level-timer" id="level-timer">00:00</span>
+            <span class="level-par" id="level-par">Par 00:00</span>
+          </div>
+          <div class="level-hud-actions">
+            <button id="btn-level-hint" class="btn btn-secondary">💡 Pista</button>
+            <button id="btn-level-exit" class="btn btn-secondary">🚪 Salir</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Campaña de Niveles -->
+      <div id="level-select-modal" class="modal hidden">
+        <div class="modal-content large">
+          <div class="modal-header">
+            <h3>🎮 Campaña de Niveles</h3>
+            <p>Supera los retos del instituto, consigue estrellas y desbloquea los niveles más difíciles.</p>
+          </div>
+          <div id="level-select-grid" class="level-select-grid">
+            <!-- Las tarjetas se generan desde LevelManager -->
+          </div>
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button id="btn-close-level-select" class="btn btn-secondary">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Nivel Completado -->
+      <div id="level-complete-modal" class="modal hidden">
+        <div class="modal-content">
+          <div id="level-complete-stars" class="level-complete-stars">★★★</div>
+          <h3 id="level-complete-title">¡Nivel completado!</h3>
+          <p id="level-complete-time">Tiempo: 00:00</p>
+          <p id="level-complete-best">Mejor tiempo: --</p>
+          <p id="level-complete-rewards">Recompensa: +0 Puntos · +0 🪙</p>
+          <div class="modal-actions">
+            <button id="btn-level-retry" class="btn btn-secondary">🔁 Reintentar</button>
+            <button id="btn-level-next" class="btn btn-primary">Siguiente nivel ▶</button>
+            <button id="btn-level-back" class="btn btn-secondary">Volver al IES</button>
+          </div>
         </div>
       </div>
 

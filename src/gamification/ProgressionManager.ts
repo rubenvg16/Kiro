@@ -17,6 +17,20 @@ export interface RelicMeta {
   rewardDescription: string;
 }
 
+/** Accesorio comprable con monedas del juego. */
+export interface ShopItem {
+  id: string;
+  name: string;
+  icon: string;
+  price: number;
+}
+
+export const SHOP_ITEMS: ShopItem[] = [
+  { id: 'glasses', name: 'Gafas', icon: '👓', price: 50 },
+  { id: 'cap', name: 'Gorra', icon: '🧢', price: 75 },
+  { id: 'backpack', name: 'Mochila escolar', icon: '🎒', price: 100 }
+];
+
 export const SECRET_RELICS: RelicMeta[] = [
   {
     id: 'relic_porch_key',
@@ -57,6 +71,11 @@ export const SECRET_RELICS: RelicMeta[] = [
 
 const PROGRESS_STORAGE_KEY = 'edu_student_progress_v2';
 
+/** Puntos necesarios para ascender del rango indicado al siguiente. */
+function xpToNextLevelFor(level: number): number {
+  return 80 + level * 40;
+}
+
 const RANKS = [
   { level: 1, title: 'Novato del Recreo' },
   { level: 2, title: 'Alumno Curioso' },
@@ -67,6 +86,24 @@ const RANKS = [
   { level: 7, title: 'Sabio de Bachillerato' },
   { level: 8, title: 'Graduado con Matrícula de Honor' }
 ];
+
+/** Convierte un valor desconocido en un entero dentro de un rango. */
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+/** Normaliza una lista de identificadores guardada en el almacenamiento. */
+function sanitizeIdList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids: string[] = [];
+  for (const entry of value) {
+    if (typeof entry === 'string' && entry.length > 0 && !ids.includes(entry)) {
+      ids.push(entry);
+    }
+  }
+  return ids;
+}
 
 export class ProgressionManager {
   private static instance: ProgressionManager;
@@ -89,29 +126,55 @@ export class ProgressionManager {
     return match ? match.title : 'Novato del Recreo';
   }
 
-  private loadProgress(): StudentProgress {
-    try {
-      const saved = localStorage.getItem(PROGRESS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!parsed.unlockedRelics) parsed.unlockedRelics = [];
-        parsed.rankTitle = this.getRankForLevel(parsed.level);
-        return parsed;
-      }
-    } catch (e) {
-      console.warn('Error al cargar progreso:', e);
-    }
-
+  /** Progreso inicial de un alumno nuevo: sólo lleva el accesorio "ninguno". */
+  private createDefaultProgress(): StudentProgress {
     return {
       level: 1,
       xp: 0,
-      xpToNextLevel: 120,
+      xpToNextLevel: xpToNextLevelFor(1),
       coins: 50,
       rankTitle: 'Novato del Recreo',
-      unlockedItems: ['none', 'glasses', 'cap', 'backpack'],
+      unlockedItems: ['none'],
       unlockedRelics: [],
       completedQuests: []
     };
+  }
+
+  /**
+   * Carga el progreso guardado hydratando TODOS los campos: una partida
+   * guardada por una versión anterior (o corrupta) nunca debe dejar campos
+   * sin definir, porque el HUD y el puente de retos los leen sin comprobar.
+   */
+  private loadProgress(): StudentProgress {
+    const fallback = this.createDefaultProgress();
+
+    try {
+      const saved = localStorage.getItem(PROGRESS_STORAGE_KEY);
+      if (!saved) return fallback;
+
+      const parsed: unknown = JSON.parse(saved);
+      if (!parsed || typeof parsed !== 'object') return fallback;
+      const source = parsed as Partial<StudentProgress>;
+
+      const level = clampInt(source.level, 1, RANKS.length, fallback.level);
+      const unlockedItems = sanitizeIdList(source.unlockedItems);
+      // El avatar sin accesorios siempre está disponible
+      if (!unlockedItems.includes('none')) unlockedItems.unshift('none');
+
+      return {
+        level,
+        xp: clampInt(source.xp, 0, 1_000_000, fallback.xp),
+        xpToNextLevel: xpToNextLevelFor(level),
+        coins: clampInt(source.coins, 0, 1_000_000, fallback.coins),
+        rankTitle: this.getRankForLevel(level),
+        unlockedItems,
+        unlockedRelics: sanitizeIdList(source.unlockedRelics),
+        completedQuests: sanitizeIdList(source.completedQuests)
+      };
+    } catch (e) {
+      console.warn('Error al cargar progreso:', e);
+      return fallback;
+    }
   }
 
   public saveProgress(): void {
@@ -124,25 +187,42 @@ export class ProgressionManager {
     }
   }
 
-  public addXP(amount: number): boolean {
+  /**
+   * Añade puntos de experiencia.
+   *
+   * @param amount Puntos que se suman.
+   * @param save Si es FALSE no persiste (para agrupar varias mutaciones en
+   *   una única escritura y un único refresco del HUD).
+   * @returns TRUE si el alumno ha ascendido de rango.
+   */
+  public addXP(amount: number, save: boolean = true): boolean {
+    if (!Number.isFinite(amount) || amount <= 0) return false;
+
     this.progress.xp += amount;
     let leveledUp = false;
 
     while (this.progress.xp >= this.progress.xpToNextLevel) {
       this.progress.xp -= this.progress.xpToNextLevel;
       this.progress.level += 1;
-      this.progress.xpToNextLevel = Math.round(this.progress.xpToNextLevel * 1.6);
+      this.progress.xpToNextLevel = xpToNextLevelFor(this.progress.level);
       this.progress.coins += 60;
       leveledUp = true;
     }
 
-    this.saveProgress();
+    if (save) this.saveProgress();
     return leveledUp;
   }
 
-  public addCoins(amount: number): void {
+  /**
+   * Suma monedas.
+   *
+   * @param amount Monedas que se suman.
+   * @param save Si es FALSE no persiste (ver `addXP`).
+   */
+  public addCoins(amount: number, save: boolean = true): void {
+    if (!Number.isFinite(amount) || amount === 0) return;
     this.progress.coins += amount;
-    this.saveProgress();
+    if (save) this.saveProgress();
   }
 
   public spendCoins(amount: number): boolean {
@@ -161,19 +241,50 @@ export class ProgressionManager {
     }
   }
 
+  /**
+   * Recoge una reliquia: desbloquea la reliquia y otorga su premio con una
+   * ÚNICA escritura en el almacenamiento (antes se guardaba tres veces).
+   */
   public unlockRelic(relicId: string): boolean {
-    if (!this.progress.unlockedRelics.includes(relicId)) {
-      this.progress.unlockedRelics.push(relicId);
-      this.addXP(150);
-      this.addCoins(100);
-      this.saveProgress();
-      return true;
+    if (this.progress.unlockedRelics.includes(relicId)) {
+      return false;
     }
-    return false;
+    this.progress.unlockedRelics.push(relicId);
+    this.addXP(150, false);
+    this.addCoins(100, false);
+    this.saveProgress();
+    return true;
   }
 
   public isRelicUnlocked(relicId: string): boolean {
     return this.progress.unlockedRelics.includes(relicId);
+  }
+
+  /** TRUE si el alumno ya posee el accesorio (el "ninguno" siempre está). */
+  public isItemUnlocked(itemId: string): boolean {
+    if (itemId === 'none') return true;
+    return this.progress.unlockedItems.includes(itemId);
+  }
+
+  /**
+   * Compra un accesorio de la tienda.
+   *
+   * No se puede repetir la compra: si el objeto ya está comprado o no hay
+   * monedas suficientes, la compra se rechaza. Al comprar bien se descuenta
+   * el precio, se desbloquea el objeto y se persiste UNA sola vez.
+   *
+   * @returns TRUE si la compra se ha realizado.
+   */
+  public buyItem(itemId: string): boolean {
+    const item = SHOP_ITEMS.find(candidate => candidate.id === itemId);
+    if (!item) return false;
+    if (this.isItemUnlocked(itemId)) return false;
+    if (this.progress.coins < item.price) return false;
+
+    this.progress.coins -= item.price;
+    this.progress.unlockedItems.push(itemId);
+    this.saveProgress();
+    return true;
   }
 
   public subscribe(listener: (progress: StudentProgress) => void): () => void {

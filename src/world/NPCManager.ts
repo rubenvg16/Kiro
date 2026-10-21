@@ -100,7 +100,8 @@ export class NPCManager {
         '¡A ver esos pasillos, que no se corre que os podéis resbalar!',
         'Si se te ha olvidado la chaqueta o el estuche en algún aula, avísame que tengo las llaves maestras.',
         'Acordaos de tirar los envases del bocadillo a la papelera amarilla del patio, que hay que cuidar el centro.'
-      ]
+      ],
+      challengeSubject: 'Mantenimiento'
     });
 
     // 4. Marcos - Compañero de clase en la pista de fútbol
@@ -131,7 +132,8 @@ export class NPCManager {
         '¡Pásala! ¡Nos quedan 10 minutos de recreo antes de que toque el timbre!',
         '¿Has hecho el reto voluntario de mates? Yo lo completé ayer y me dieron monedas para comprar la mochila.',
         '¡En cuanto suene el timbre vamos juntos a la clase de Tecnología!'
-      ]
+      ],
+      challengeSubject: 'Buck'
     });
   }
 

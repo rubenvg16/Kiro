@@ -12,10 +12,8 @@ export class PuzzleEngine {
   private modalElem: HTMLElement | null = null;
   private contentElem: HTMLElement | null = null;
   private titleElem: HTMLElement | null = null;
-  private progression: ProgressionManager;
 
   private constructor() {
-    this.progression = ProgressionManager.getInstance();
     this.createDOM();
   }
 
@@ -24,6 +22,40 @@ export class PuzzleEngine {
       PuzzleEngine.instance = new PuzzleEngine();
     }
     return PuzzleEngine.instance;
+  }
+
+  /**
+   * Aplica el resultado de un reto a la progresión del estudiante.
+   * Los XP y las monedas se acumulan sin guardar y se persiste UNA sola vez,
+   * de modo que un reto no dispara tres escrituras en localStorage.
+   *
+   * @param result Resultado del reto (resuelto, XP, monedas y reliquia).
+   * @returns `true` si el estudiante subió de rango con esta recompensa.
+   */
+  public static applyResult(result: PuzzleResult): boolean {
+    const progression = ProgressionManager.getInstance();
+    let leveledUp = false;
+
+    if (result.xpEarned > 0) {
+      leveledUp = progression.addXP(result.xpEarned, false);
+    }
+
+    if (result.coinsEarned > 0) {
+      progression.addCoins(result.coinsEarned, false);
+    }
+
+    if (result.relicUnlocked) {
+      // `unlockRelic` ya guarda una única vez; si la reliquia ya estaba
+      // desbloqueada guardamos nosotros para no perder XP ni monedas.
+      const unlocked = progression.unlockRelic(result.relicUnlocked);
+      if (!unlocked) {
+        progression.saveProgress();
+      }
+      return leveledUp;
+    }
+
+    progression.saveProgress();
+    return leveledUp;
   }
 
   private createDOM(): void {
@@ -145,9 +177,12 @@ export class PuzzleEngine {
       });
 
       this.contentElem.querySelector('#btn-claim-balance')?.addEventListener('click', () => {
-        this.progression.addXP(80);
-        this.progression.addCoins(60);
-        this.progression.unlockRelic('relic_balance_master');
+        PuzzleEngine.applyResult({
+          solved: true,
+          xpEarned: 80,
+          coinsEarned: 60,
+          relicUnlocked: 'relic_balance_master'
+        });
         this.close();
       });
     };
@@ -230,9 +265,12 @@ export class PuzzleEngine {
       });
 
       this.contentElem.querySelector('#btn-claim-cervantes')?.addEventListener('click', () => {
-        this.progression.addXP(100);
-        this.progression.addCoins(75);
-        this.progression.unlockRelic('relic_cervantes_scroll');
+        PuzzleEngine.applyResult({
+          solved: true,
+          xpEarned: 100,
+          coinsEarned: 75,
+          relicUnlocked: 'relic_cervantes_scroll'
+        });
         this.close();
       });
     };
@@ -315,9 +353,12 @@ export class PuzzleEngine {
       });
 
       this.contentElem.querySelector('#btn-claim-cajal')?.addEventListener('click', () => {
-        this.progression.addXP(120);
-        this.progression.addCoins(80);
-        this.progression.unlockRelic('relic_cajal_microscope');
+        PuzzleEngine.applyResult({
+          solved: true,
+          xpEarned: 120,
+          coinsEarned: 80,
+          relicUnlocked: 'relic_cajal_microscope'
+        });
         this.close();
       });
     };

@@ -12,6 +12,7 @@ export class SnapshotService {
   ): string {
     // 1. Guardar la configuración previa de la cámara y tamaño del renderer
     const prevPosition = originalCamera.position.clone();
+    const prevQuaternion = originalCamera.quaternion.clone();
     const prevFov = originalCamera.fov;
 
     // 2. Colocar la cámara en primer plano (close-up para foto de carnet)
@@ -25,10 +26,12 @@ export class SnapshotService {
     // 4. Capturar el PNG
     const dataUrl = renderer.domElement.toDataURL('image/png');
 
-    // 5. Restaurar la cámara a la vista del usuario
+    // 5. Restaurar la cámara a la vista del usuario (posición y orientación
+    //    exactas: nada de mirar a un origen fijo, que dejaba la cámara
+    //    descolocada hasta el siguiente lerp).
     originalCamera.position.copy(prevPosition);
+    originalCamera.quaternion.copy(prevQuaternion);
     originalCamera.fov = prevFov;
-    originalCamera.lookAt(0, 1.0, 0);
     originalCamera.updateProjectionMatrix();
     renderer.render(scene, originalCamera);
 

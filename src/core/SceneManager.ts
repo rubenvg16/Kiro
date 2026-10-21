@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-export type AppMode = 'customizer' | 'world';
+export type AppMode = 'customizer' | 'world' | 'levels';
 
 export class SceneManager {
   public scene: THREE.Scene;
@@ -12,6 +12,7 @@ export class SceneManager {
 
   private container: HTMLElement;
   private floorGroup: THREE.Group;
+  private dirLight: THREE.DirectionalLight;
   private onUpdateCallback?: (delta: number) => void;
   private clock: THREE.Clock = new THREE.Clock();
 
@@ -50,6 +51,7 @@ export class SceneManager {
     this.controls.maxPolarAngle = Math.PI / 2 + 0.1;
 
     // 5. Iluminación limpia
+    this.dirLight = new THREE.DirectionalLight(0xfff3e0, 1.3);
     this.setupLighting();
 
     // 6. Plataforma de estudio
@@ -57,10 +59,14 @@ export class SceneManager {
     this.setupStudioFloor();
     this.scene.add(this.floorGroup);
 
-    // 7. Resize listener
+    // 7. El objetivo de la luz direccional debe estar en la escena para que
+    //    su matriz de mundo se actualice cuando se mueve el foco de luz
+    this.scene.add(this.dirLight.target);
+
+    // 8. Resize listener
     window.addEventListener('resize', this.onWindowResize.bind(this));
 
-    // 8. Render loop
+    // 9. Render loop
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
   }
@@ -73,7 +79,7 @@ export class SceneManager {
     hemiLight.position.set(0, 30, 0);
     this.scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfff3e0, 1.3);
+    const dirLight = this.dirLight;
     dirLight.position.set(10, 20, 15);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -90,6 +96,21 @@ export class SceneManager {
     const rimLight = new THREE.DirectionalLight(0x60a5fa, 0.6);
     rimLight.position.set(-15, 10, -15);
     this.scene.add(rimLight);
+  }
+
+  /**
+   * Enfoca la luz direccional sobre un punto del mundo.
+   *
+   * El frustum de sombras es pequeño (±20 m), así que la luz sólo ilumina
+   * bien el entorno que hay alrededor de su objetivo. Sin esto, las arenas de
+   * niveles (situadas a 200 m del origen) quedarían sin luz ni sombras.
+   *
+   * @param target Punto del mundo que debe quedar iluminado.
+   */
+  public focusLightingOn(target: THREE.Vector3): void {
+    this.dirLight.position.set(target.x + 10, target.y + 20, target.z + 15);
+    this.dirLight.target.position.copy(target);
+    this.dirLight.target.updateMatrixWorld();
   }
 
   private setupStudioFloor(): void {
@@ -126,6 +147,8 @@ export class SceneManager {
       // residual arrastra la cámara y da un salto al volver al customizer
       this.controls.update();
     } else {
+      // 'world' y 'levels' comparten escenario exterior: sin suelo de estudio
+      // y con cielo celeste escolar
       this.controls.enabled = false;
       this.floorGroup.visible = false;
       this.scene.fog = new THREE.Fog(0x93c5fd, 30, 85);
