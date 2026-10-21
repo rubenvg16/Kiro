@@ -1,6 +1,6 @@
-# I.E.S. Virtual 3D — Avatar & Campus Escolar
+# Kiro — Videojuego Educativo 3D Escolar
 
-Videojuego educativo 3D en web orientado a colegios e institutos españoles (Primaria, E.S.O. y Bachillerato). Permite a los alumnos personalizar su avatar escolar en 3D, exportar fotos de perfil en alta resolución para Google Classroom y Moodle Centros, explorar el patio del instituto, interactuar con profesores y personajes históricos, y resolver enigmas curriculares y puzzles reales de matemáticas y ciencias.
+**Kiro** es un videojuego educativo 3D en web orientado a colegios e institutos españoles (Primaria, E.S.O. y Bachillerato). Permite a los alumnos personalizar su avatar escolar en 3D, exportar fotos de perfil en alta resolución para Google Classroom y Moodle Centros, explorar el patio del instituto, interactuar con profesores y figuras históricas universales (Santiago Ramón y Cajal, Cervantes, Pitágoras), y resolver enigmas curriculares y puzzles reales de matemáticas y ciencias con herramientas integradas (calculadora científica y pizarra digital de apuntes).
 
 ![Three.js](https://img.shields.io/badge/Three.js-0.170.0-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)
