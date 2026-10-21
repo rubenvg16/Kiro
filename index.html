@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>I.E.S. Virtual - Avatar y Patio Escolar 3D</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="canvas-container"></div>
+
+      <!-- Barra superior de estado del alumno con selector de curso y estadísticas -->
+      <header id="student-stats-bar">
+        <div class="stats-card">
+          <!-- Selector interactivo de Curso Escolar -->
+          <button id="btn-select-course" class="course-selector-btn" title="Cambiar de curso escolar">
+            <span class="cap-icon">🎓</span>
+            <strong id="hud-course-name">2º de E.S.O.</strong>
+            <span class="arrow">▾</span>
+          </button>
+
+          <div class="rank-pill" id="hud-rank-pill" title="Rango de Maestría Escolar">
+            Novato del Recreo
+          </div>
+
+          <div class="xp-container">
+            <div class="xp-bar-bg">
+              <div class="xp-bar-fill" id="hud-xp-fill" style="width: 0%;"></div>
+            </div>
+            <span class="xp-text" id="hud-xp-text">0 / 120 Puntos</span>
+          </div>
+
+          <div class="coins-pill">
+            <span class="coin-icon">🪙</span>
+            <span id="hud-coins">50</span>
+          </div>
+        </div>
+
+        <!-- Barra de Herramientas y Medallero Escolar -->
+        <div class="top-tools-bar">
+          <button id="btn-open-calculator" class="tool-shortcut-btn" title="Abrir Calculadora Científica">
+            <span>🔢 Calculadora</span>
+          </button>
+          <button id="btn-open-whiteboard" class="tool-shortcut-btn" title="Abrir Pizarra Digital">
+            <span>🖍️ Pizarra</span>
+          </button>
+          <button id="btn-open-relics" class="tool-shortcut-btn gold-glow" title="Álbum de Reliquias y Medallas">
+            <span>🏅 Medallero</span>
+          </button>
+          <button id="btn-open-quests" class="btn btn-quest">
+            <span>🏆 Retos Voluntarios</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Barra central de cambio de modo (Estudio vs Patio del IES) -->
+      <nav id="top-nav">
+        <div class="mode-tabs">
+          <button id="tab-customizer" class="tab-btn active">
+            <span class="tab-icon">🎨</span> Personalizar Alumno
+          </button>
+          <button id="tab-world" class="tab-btn">
+            <span class="tab-icon">🏫</span> Patio y Pistas del IES
+          </button>
+        </div>
+      </nav>
+      
+      <!-- Panel de personalización del alumno -->
+      <aside id="ui-panel" class="panel">
+        <header class="panel-header">
+          <h1>Mi Alumno / Avatar</h1>
+          <p class="subtitle">Personaliza tu aspecto para el instituto</p>
+        </header>
+
+        <section class="panel-section">
+          <h2>Tono de Piel</h2>
+          <div class="color-palette" id="skin-colors"></div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Sudadera / Camiseta</h2>
+          <div class="color-palette" id="shirt-colors"></div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Pantalón</h2>
+          <div class="color-palette" id="pants-colors"></div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Accesorio Escolar</h2>
+          <div class="button-group" id="accessory-options">
+            <button class="btn btn-option active" data-accessory="none">Ninguno</button>
+            <button class="btn btn-option" data-accessory="glasses">Gafas</button>
+            <button class="btn btn-option" data-accessory="cap">Gorra</button>
+            <button class="btn btn-option" data-accessory="backpack">Mochila</button>
+          </div>
+        </section>
+
+        <footer class="panel-footer">
+          <button id="btn-snapshot" class="btn btn-primary">
+            <span class="icon">📸</span> Guardar Foto para Classroom
+          </button>
+        </footer>
+      </aside>
+
+      <!-- HUD de controles para el Patio del Instituto -->
+      <div id="world-hud" class="hud hidden">
+        <div class="hud-instructions">
+          <p class="desktop-hint">⌨️ <strong>W, A, S, D</strong> moverte | <strong>Espacio</strong> saltar | <strong>Shift</strong> correr | <strong>E</strong> hablar e interactuar</p>
+          <p class="touch-hint">📱 Usa el joystick, botones de salto y carrera | Toca para hablar</p>
+        </div>
+
+        <!-- Joystick virtual táctil -->
+        <div id="joystick-zone">
+          <div id="joystick-base">
+            <div id="joystick-knob"></div>
+          </div>
+        </div>
+
+        <!-- Botones táctiles de Salto y Carrera para tablets -->
+        <div id="touch-action-buttons">
+          <button id="btn-touch-sprint" class="touch-circle-btn" title="Correr / Sprint">⚡</button>
+          <button id="btn-touch-jump" class="touch-circle-btn" title="Saltar">🦘</button>
+        </div>
+
+        <!-- Banner de interacción con Instalaciones o NPCs -->
+        <div id="poi-banner" class="poi-card hidden">
+          <div class="poi-header">
+            <span id="poi-badge" class="badge">🏫</span>
+            <div class="poi-info">
+              <h3 id="poi-title">Conserjería</h3>
+              <p id="poi-desc">Avisos del centro</p>
+            </div>
+          </div>
+          <button id="btn-interact" class="btn btn-success btn-pulse">
+            Entrar / Hablar (E)
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal de Diálogo con NPCs y Personajes Históricos -->
+      <div id="dialogue-modal" class="modal hidden">
+        <div class="modal-content large dialogue-box">
+          <div class="dialogue-header">
+            <div class="npc-avatar-badge" id="dialogue-npc-badge">👨‍🏫</div>
+            <div class="npc-meta">
+              <h3 id="dialogue-npc-name">Don Manuel</h3>
+              <span class="npc-role" id="dialogue-npc-role">Profesor de Matemáticas</span>
+            </div>
+          </div>
+          <div class="dialogue-body">
+            <p id="dialogue-text" class="speech-bubble">...</p>
+          </div>
+          <div class="dialogue-actions" id="dialogue-options-container">
+            <button id="btn-dialogue-quiz" class="btn btn-primary">¡Aceptar el Desafío!</button>
+            <button id="btn-close-dialogue" class="btn btn-secondary">Hasta luego</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Álbum de Reliquias y Medallero -->
+      <div id="relics-modal" class="modal hidden">
+        <div class="modal-content large">
+          <div class="quests-modal-header">
+            <h3>🏅 Medallero y Reliquias Ocultas del IES</h3>
+            <p>Explora el patio y supera enigmas históricos para desbloquear las reliquias de oro.</p>
+          </div>
+          <div id="relics-grid" class="relics-cards-grid"></div>
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button id="btn-close-relics-modal" class="btn btn-secondary">Cerrar Medallero</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Selección de Curso Escolar -->
+      <div id="course-modal" class="modal hidden">
+        <div class="modal-content large">
+          <div class="quests-modal-header">
+            <h3>🎓 Selecciona tu Curso Escolar</h3>
+            <p>Los cuestionarios y retos se adaptarán al currículo oficial de tu curso en España.</p>
+          </div>
+          <div id="course-list-container" class="course-stages-container"></div>
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button id="btn-close-course-modal" class="btn btn-secondary">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Foto de Perfil (Classroom / Moodle) -->
+      <div id="snapshot-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>¡Foto de Carnet Lista!</h3>
+          <p>Descárgala en PNG para subirla a tu perfil de Google Classroom o Moodle Centros.</p>
+          <div class="avatar-preview-circle">
+            <img id="snapshot-img" alt="Foto de perfil escolar" />
+          </div>
+          <div class="modal-actions">
+            <a id="btn-download" class="btn btn-success" download="alumno-ies.png">Descargar PNG</a>
+            <button id="btn-close-modal" class="btn btn-secondary">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Actividad Escolar -->
+      <div id="activity-modal" class="modal hidden">
+        <div class="modal-content large">
+          <div class="activity-top-tools">
+            <span id="activity-modal-title" style="font-weight: 700; font-size: 1.15rem;">Actividad</span>
+            <div class="inline-tools">
+              <button id="btn-activity-calc" class="tool-mini-btn" title="Abrir Calculadora">🔢 Calculadora</button>
+              <button id="btn-activity-board" class="tool-mini-btn" title="Abrir Pizarra">🖍️ Borrador</button>
+            </div>
+          </div>
+          <div id="activity-modal-body" class="activity-content" style="margin-top: 14px;"></div>
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button id="btn-close-activity" class="btn btn-secondary">Volver al Patio</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Retos Adicionales Voluntarios -->
+      <div id="quests-modal" class="modal hidden">
+        <div class="modal-content large">
+          <div class="quests-modal-header">
+            <h3>🏆 Retos Adicionales y Desafíos Voluntarios</h3>
+            <p id="quests-subtitle">Pruebas voluntarias adaptadas a tu curso para ganar puntos y monedas</p>
+          </div>
+          <div id="quests-list" class="quests-list"></div>
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button id="btn-close-quests" class="btn btn-secondary">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
