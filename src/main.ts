@@ -1,4 +1,7 @@
+import * as THREE from 'three';
 import { SceneManager } from './core/SceneManager';
+import { PhysicsWorld } from './core/physics';
+import { SCHOOL_BOX_COLLIDERS, SCHOOL_SPHERE_COLLIDERS } from './world/WorldColliders';
 import { AvatarModel, AvatarConfig } from './avatar/AvatarModel';
 import { SnapshotService } from './avatar/SnapshotService';
 import { AvatarStorage } from './storage/AvatarStorage';
@@ -83,9 +86,30 @@ worldEnvironment.group.add(npcManager.group);
 const historicalFiguresManager = new HistoricalFiguresManager();
 worldEnvironment.group.add(historicalFiguresManager.group);
 
+// Mundo físico: los colliders del patio se registran en el motor
+const physicsWorld = new PhysicsWorld();
+for (const box of SCHOOL_BOX_COLLIDERS) {
+  physicsWorld.addStaticBox(
+    new THREE.Vector3(box.center[0], box.center[1], box.center[2]),
+    new THREE.Vector3(box.half[0], box.half[1], box.half[2]),
+    { id: box.id, friction: box.friction, restitution: box.restitution },
+  );
+}
+for (const sphere of SCHOOL_SPHERE_COLLIDERS) {
+  physicsWorld.addStaticSphere(
+    new THREE.Vector3(sphere.center[0], sphere.center[1], sphere.center[2]),
+    sphere.radius,
+    { id: sphere.id, friction: sphere.friction, restitution: sphere.restitution },
+  );
+}
+
 // Input, Controlador de Jugador e Interacciones
 const inputManager = new InputManager();
-const playerController = new PlayerController(avatar);
+const playerController = new PlayerController(
+  avatar,
+  physicsWorld,
+  sceneManager.renderer.domElement,
+);
 const interactionManager = new InteractionManager();
 
 // Elementos del Banner de Interacción
@@ -114,6 +138,8 @@ sceneManager.setUpdateCallback((delta: number) => {
   } else {
     const movement = inputManager.getMovement();
     playerController.update(delta, movement, sceneManager.camera);
+    // Los cuerpos dinámicos se integran en el motor físico
+    physicsWorld.step(delta);
     collectiblesManager.update(delta, playerController.position);
     secretRelicsManager.update(delta, playerController.position);
 

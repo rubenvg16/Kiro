@@ -243,15 +243,27 @@ export class AvatarModel {
   }
 
   /**
-   * Actualiza las animaciones de idle, caminata, carrera y salto
+   * Actualiza las animaciones de idle, caminata, carrera y salto.
+   *
+   * `baseY` es la altura real del suelo bajo el avatar: el bobbing se aplica
+   * SIEMPRE de forma relativa a esa altura, nunca en absoluto, para no
+   * teletransportar al personaje a y = 0 cuando el terreno está elevado.
    */
-  public updateAnimation(delta: number, isMoving: boolean, isGrounded: boolean = true, isSprinting: boolean = false): void {
+  public updateAnimation(
+    delta: number,
+    isMoving: boolean,
+    isGrounded: boolean = true,
+    isSprinting: boolean = false,
+    baseY: number = 0
+  ): void {
     if (!isGrounded) {
       // Pose de salto en el aire
       this.leftArm.rotation.x = -1.2;
       this.rightArm.rotation.x = -1.2;
       this.leftLegGroup.rotation.x = 0.4;
       this.rightLegGroup.rotation.x = -0.3;
+      // En el aire el avatar se queda a la altura real del suelo
+      this.group.position.y = baseY;
       return;
     }
 
@@ -272,8 +284,8 @@ export class AvatarModel {
       this.rightArm.rotation.x = swing * armAmplitude;
       this.rightHand.position.z = Math.sin(this.rightArm.rotation.x) * 0.25;
 
-      // Bobbing vertical al caminar/correr
-      this.group.position.y = Math.abs(Math.sin(this.walkTime)) * (isSprinting ? 0.12 : 0.08);
+      // Bobbing vertical al caminar/correr (relativo a la altura del suelo)
+      this.group.position.y = baseY + Math.abs(Math.sin(this.walkTime)) * (isSprinting ? 0.12 : 0.08);
       this.headGroup.rotation.y = Math.sin(this.walkTime * 0.5) * 0.05;
     } else {
       // Regreso suave a reposo e idle breathing
@@ -283,7 +295,8 @@ export class AvatarModel {
       this.rightArm.rotation.x *= 0.85;
       this.leftHand.position.z *= 0.85;
       this.rightHand.position.z *= 0.85;
-      this.group.position.y *= 0.85;
+      // En reposo el avatar vuelve a la altura real del suelo (no a y = 0)
+      this.group.position.y = baseY;
 
       const t = performance.now() * 0.0025;
       if (this.chestMesh && this.headGroup) {

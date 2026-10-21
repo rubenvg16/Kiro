@@ -1,122 +1,313 @@
 import * as THREE from 'three';
 import { AvatarModel } from '../avatar/AvatarModel';
-import { MovementVector } from './InputManager';
+import type { MovementVector } from './InputManager';
+import { CharacterController, type CharacterInput } from '../core/physics/CharacterController';
+import type { PhysicsWorld } from '../core/physics/PhysicsWorld';
+import { FollowCamera } from './FollowCamera';
 
+/** Velocidad de giro del avatar hacia la dirección de marcha (1/segundo). */
+const TURN_RATE = 14;
+/** Suavizado del auto-follow de la cámara (1/segundo). */
+const AUTO_FOLLOW_RATE = 2.2;
+/** Píxeles que hay que mover para considerar que un arrastre es real. */
+const DRAG_THRESHOLD = 4;
+
+/** Amortigua un ángulo por el camino más corto, independiente del framerate. */
+function dampAngle(current: number, target: number, rate: number, delta: number): number {
+  let diff = target - current;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  return current + diff * (1 - Math.exp(-rate * delta));
+}
+
+/**
+ * Controlador del jugador.
+ *
+ * La simulación (aceleración, fricción, gravedad, coyote time, buffer de salto,
+ * escalones y pendientes) vive en `CharacterController`; esta clase sólo
+ * traduce la entrada heredada, orienta el avatar y mantiene la cámara de
+ * seguimiento.
+ */
 export class PlayerController {
+  /** Modelo 3D del alumno. */
   public avatar: AvatarModel;
-  public position: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+  /** Posición de los pies del jugador. */
+  public position: THREE.Vector3 = new THREE.Vector3();
+  /** TRUE mientras el personaje apoya los pies en el suelo. */
+  public isGrounded = false;
+  /** Velocidad actual del jugador en m/s. */
+  public velocity: THREE.Vector3 = new THREE.Vector3();
+  /** Orientación actual de la cámara de seguimiento (radianes). */
+  public cameraYaw = 0;
 
-  // Físicas y Locomoción
-  private walkSpeed: number = 6.2;
-  private sprintSpeed: number = 10.5;
-  private verticalVelocity: number = 0;
-  private gravity: number = -26.0;
-  private jumpForce: number = 9.5;
-  public isGrounded: boolean = true;
+  private readonly world: PhysicsWorld;
+  private readonly controller: CharacterController;
+  private followCamera: FollowCamera | null = null;
+  private cameraInstance: THREE.PerspectiveCamera | null = null;
+  private enabled = true;
 
-  private targetRotation: number = 0;
-  private currentRotation: number = 0;
+  // Arrastre del usuario sobre la cámara
+  private canvas: HTMLElement | null = null;
+  private dragPointerId: number | null = null;
+  private dragging = false;
+  private dragDistance = 0;
+  private lastPointerX = 0;
+  private lastPointerY = 0;
 
-  constructor(avatar: AvatarModel) {
+  // Intención de marcha: se remuestrea cuando el jugador cambia de dirección
+  private intentX = 0;
+  private intentZ = 0;
+  private intentWorldYaw = 0;
+  private hasIntent = false;
+  /** El usuario ha movido la cámara a mano: el auto-follow espera. */
+  private manualCamera = false;
+
+  constructor(avatar: AvatarModel, world: PhysicsWorld, canvas?: HTMLElement) {
     this.avatar = avatar;
-    this.avatar.group.position.copy(this.position);
-  }
+    this.world = world;
+    this.controller = new CharacterController(world);
+    this.controller.setEnabled(this.enabled);
 
-  public update(
-    delta: number,
-    input: MovementVector,
-    camera: THREE.PerspectiveCamera
-  ): void {
-    const isMoving = input.isMoving;
-    const isSprinting = input.isSprinting;
-
-    // 1. Físicas de Salto y Gravedad
-    if (input.jumpPressed && this.isGrounded) {
-      this.verticalVelocity = this.jumpForce;
-      this.isGrounded = false;
-    }
-
-    if (!this.isGrounded) {
-      this.verticalVelocity += this.gravity * delta;
-      this.position.y += this.verticalVelocity * delta;
-
-      // Contacto con el suelo del patio
-      if (this.position.y <= 0) {
-        this.position.y = 0;
-        this.verticalVelocity = 0;
-        this.isGrounded = true;
-      }
-    }
-
-    // 2. Movimiento horizontal y rotación
-    if (isMoving) {
-      this.targetRotation = Math.atan2(input.x, input.y);
-
-      let diff = this.targetRotation - this.currentRotation;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      this.currentRotation += diff * Math.min(delta * 14, 1);
-      this.avatar.group.rotation.y = this.currentRotation;
-
-      const currentSpeed = isSprinting ? this.sprintSpeed : this.walkSpeed;
-      const moveDistance = currentSpeed * delta;
-      const nextX = this.position.x + Math.sin(this.targetRotation) * moveDistance;
-      const nextZ = this.position.z + Math.cos(this.targetRotation) * moveDistance;
-
-      // Comprobación de colisiones con los edificios del instituto
-      if (!this.checkBuildingCollision(nextX, this.position.z)) {
-        this.position.x = nextX;
-      }
-      if (!this.checkBuildingCollision(this.position.x, nextZ)) {
-        this.position.z = nextZ;
-      }
-
-      // Límites del recinto escolar (-36 a 36)
-      this.position.x = Math.max(-36, Math.min(36, this.position.x));
-      this.position.z = Math.max(-36, Math.min(36, this.position.z));
-    }
-
-    // Actualizar coordenadas del modelo 3D
+    this.position.copy(this.controller.position);
+    this.velocity.copy(this.controller.velocity);
     this.avatar.group.position.copy(this.position);
 
-    // 3. Animaciones dinámicas de andar, correr y saltar
-    this.avatar.updateAnimation(delta, isMoving, this.isGrounded, isSprinting);
-
-    // 4. Cámara de seguimiento en 3ª persona
-    const cameraHeight = 4.2;
-    const cameraDistance = isSprinting ? 8.2 : 7.2; // La cámara se aleja sutilmente al esprintar
-    const cameraOffset = new THREE.Vector3(0, cameraHeight, cameraDistance);
-    const desiredCameraPos = this.position.clone().add(cameraOffset);
-    
-    camera.position.lerp(desiredCameraPos, Math.min(delta * 6.0, 1.0));
-    camera.lookAt(this.position.x, this.position.y + 1.2, this.position.z);
+    if (canvas) {
+      this.canvas = canvas;
+      this.attachDragHandlers(canvas);
+    }
   }
 
   /**
-   * Evita que el alumno atraviese las paredes del IES y del gimnasio
+   * Actualiza la física, el avatar y la cámara.
+   *
+   * @param delta Segundos transcurridos desde el frame anterior.
+   * @param input Entrada heredada del gestor de teclado / joystick.
+   * @param camera Cámara de la escena (se inyecta en cada frame).
    */
-  private checkBuildingCollision(x: number, z: number): boolean {
-    // Edificio Central del IES (Norte, Z = -18)
-    if (x >= -14.2 && x <= 14.2 && z >= -24.2 && z <= -11.8) {
-      // Dejar paso por la puerta principal
-      if (x >= -2.0 && x <= 2.0 && z >= -12.5) {
-        return false;
-      }
-      return true;
+  public update(
+    delta: number,
+    input: MovementVector,
+    camera: THREE.PerspectiveCamera,
+  ): void {
+    const dt = Math.min(Math.max(delta, 0), 0.1);
+    const followCamera = this.ensureFollowCamera(camera);
+
+    // 1. El arrastre del usuario puede haber girado la cámara en este frame
+    this.cameraYaw = followCamera.yaw;
+
+    // 2. Intención de marcha (se remuestrea al cambiar de dirección)
+    this.updateIntent(input);
+
+    // 3. Auto-follow: la cámara se va colocando detrás del personaje.
+    // Sólo en el suelo: en el aire el yaw se mantiene estable.
+    // Se desactiva si el usuario ha girado la cámara a mano.
+    if (
+      this.enabled &&
+      !this.dragging &&
+      !this.manualCamera &&
+      this.hasIntent &&
+      this.isGrounded
+    ) {
+      const targetYaw = this.intentWorldYaw - Math.PI;
+      this.cameraYaw = dampAngle(this.cameraYaw, targetYaw, AUTO_FOLLOW_RATE, dt);
+      followCamera.setYaw(this.cameraYaw);
     }
 
-    // Gimnasio (Este, X = 20, Z = 8)
-    if (x >= 12.8 && x <= 27.2 && z >= -3.2 && z <= 19.2) {
-      return true;
-    }
+    // 4. Física: la entrada heredada se traduce a la entrada del motor
+    const characterInput: CharacterInput = {
+      moveX: this.enabled ? input.x : 0,
+      moveZ: this.enabled ? input.y : 0,
+      yaw: this.cameraYaw,
+      jumpPressed: this.enabled && input.jumpPressed,
+      jumpHeld: this.enabled && input.jumpHeld,
+      sprint: this.enabled && input.isSprinting,
+    };
+    const state = this.controller.update(dt, characterInput);
 
-    return false;
+    this.position.copy(state.position);
+    this.velocity.copy(state.velocity);
+    this.isGrounded = state.grounded;
+
+    // 5. Avatar: orientación y animación relativa a la altura real del suelo
+    const isMoving = this.enabled && state.speed > 0.1;
+    this.updateAvatarFacing(input, dt);
+    this.avatar.group.position.copy(this.position);
+    this.avatar.updateAnimation(
+      dt,
+      isMoving,
+      state.grounded,
+      state.sprinting,
+      this.position.y,
+    );
+
+    // 6. Cámara de seguimiento (con control de obstrucciones)
+    followCamera.followTarget(this.position, dt, this.world);
   }
 
+  /** Teleporta al jugador a una posición concreta y reinicia la cámara. */
   public setPosition(x: number, y: number, z: number): void {
     this.position.set(x, y, z);
-    this.avatar.group.position.set(x, y, z);
-    this.verticalVelocity = 0;
-    this.isGrounded = true;
+    this.controller.teleport(this.position);
+    this.velocity.set(0, 0, 0);
+    this.isGrounded = this.controller.grounded;
+
+    // La orientación del avatar y de la cámara se reinician (evita yaw residual)
+    this.avatar.group.rotation.y = 0;
+    this.cameraYaw = 0;
+    this.hasIntent = false;
+    this.intentX = 0;
+    this.intentZ = 0;
+    this.manualCamera = false;
+
+    if (this.followCamera) {
+      this.followCamera.setYaw(0);
+      this.followCamera.snapTo(this.position);
+    }
   }
+
+  /** Activa o desactiva el control del jugador (la cámara sigue viva). */
+  public setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    this.controller.setEnabled(enabled);
+  }
+
+  /** Velocidad horizontal actual en m/s. */
+  public getSpeed(): number {
+    return Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+  }
+
+  /** Orientación actual de la cámara de seguimiento en radianes. */
+  public getCameraYaw(): number {
+    return this.cameraYaw;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Interno
+  // ---------------------------------------------------------------------------
+
+  /** Crea la cámara de seguimiento si la instancia de cámara ha cambiado. */
+  private ensureFollowCamera(camera: THREE.PerspectiveCamera): FollowCamera {
+    if (!this.followCamera || this.cameraInstance !== camera) {
+      const yaw = this.followCamera ? this.followCamera.yaw : this.cameraYaw;
+      this.followCamera = new FollowCamera(camera);
+      this.followCamera.setYaw(yaw);
+      this.cameraInstance = camera;
+    }
+    return this.followCamera;
+  }
+
+  /**
+   * Muestrea la dirección de marcha en el mundo cuando el jugador cambia de
+   * dirección. Se hace una sola vez por cambio (no en cada frame) porque la
+   * entrada es relativa a la cámara: si se remuestrease cada frame, la cámara
+   * y el personaje girarían juntos indefinidamente.
+   */
+  private updateIntent(input: MovementVector): void {
+    const length = Math.hypot(input.x, input.y);
+    if (!this.enabled || length <= 0.05) {
+      this.hasIntent = false;
+      return;
+    }
+
+    const dirX = input.x / length;
+    const dirZ = input.y / length;
+    const changed =
+      !this.hasIntent ||
+      Math.abs(dirX - this.intentX) > 0.15 ||
+      Math.abs(dirZ - this.intentZ) > 0.15;
+
+    if (!changed) return;
+
+    this.intentX = dirX;
+    this.intentZ = dirZ;
+    this.hasIntent = true;
+    this.manualCamera = false;
+
+    // Dirección de marcha en el mundo con el yaw actual de la cámara
+    const sin = Math.sin(this.cameraYaw);
+    const cos = Math.cos(this.cameraYaw);
+    const worldX = cos * dirX - sin * dirZ;
+    const worldZ = -sin * dirX - cos * dirZ;
+    this.intentWorldYaw = Math.atan2(worldX, worldZ);
+  }
+
+  /** Gira el avatar hacia la dirección de marcha (conserva la última si está quieto). */
+  private updateAvatarFacing(input: MovementVector, delta: number): void {
+    const length = Math.hypot(input.x, input.y);
+    if (!this.enabled || length <= 0.05) return;
+
+    const sin = Math.sin(this.cameraYaw);
+    const cos = Math.cos(this.cameraYaw);
+    const dirX = cos * input.x - sin * input.y;
+    const dirZ = -sin * input.x - cos * input.y;
+
+    // El avatar mira hacia +Z en rotación 0, por eso el atan2(dirX, dirZ)
+    const targetYaw = Math.atan2(dirX, dirZ);
+    this.avatar.group.rotation.y = dampAngle(
+      this.avatar.group.rotation.y,
+      targetYaw,
+      TURN_RATE,
+      delta,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Arrastre de la cámara
+  // ---------------------------------------------------------------------------
+
+  private attachDragHandlers(canvas: HTMLElement): void {
+    canvas.addEventListener('pointerdown', this.handlePointerDown);
+    canvas.addEventListener('pointermove', this.handlePointerMove);
+    canvas.addEventListener('pointerup', this.handlePointerUp);
+    canvas.addEventListener('pointercancel', this.handlePointerUp);
+  }
+
+  private handlePointerDown = (event: PointerEvent): void => {
+    // Se ignoran los botones secundarios del ratón
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    this.dragPointerId = event.pointerId;
+    this.dragging = false;
+    this.dragDistance = 0;
+    this.lastPointerX = event.clientX;
+    this.lastPointerY = event.clientY;
+
+    if (this.canvas) {
+      try {
+        this.canvas.setPointerCapture(event.pointerId);
+      } catch {
+        // Si el puntero ya no está activo se ignora la captura
+      }
+    }
+  };
+
+  private handlePointerMove = (event: PointerEvent): void => {
+    if (this.dragPointerId !== event.pointerId) return;
+
+    const dx = event.clientX - this.lastPointerX;
+    const dy = event.clientY - this.lastPointerY;
+    this.lastPointerX = event.clientX;
+    this.lastPointerY = event.clientY;
+
+    this.dragDistance += Math.hypot(dx, dy);
+    // Umbral: un clic simple no debe girar la cámara
+    if (!this.dragging && this.dragDistance < DRAG_THRESHOLD) return;
+
+    this.dragging = true;
+    // El usuario toma el control de la cámara: el auto-follow espera
+    this.manualCamera = true;
+    this.followCamera?.rotate(dx, dy);
+  };
+
+  private handlePointerUp = (event: PointerEvent): void => {
+    if (this.dragPointerId !== event.pointerId) return;
+
+    this.dragPointerId = null;
+    this.dragging = false;
+
+    if (this.canvas && this.canvas.hasPointerCapture(event.pointerId)) {
+      this.canvas.releasePointerCapture(event.pointerId);
+    }
+  };
 }

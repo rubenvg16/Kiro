@@ -3,7 +3,10 @@ export interface MovementVector {
   y: number; // -1 (abajo) a 1 (arriba)
   isMoving: boolean;
   isSprinting: boolean;
+  /** TRUE sólo en el frame en el que se pulsa el salto (flanco de subida). */
   jumpPressed: boolean;
+  /** TRUE mientras el botón o la tecla de salto se mantienen pulsados. */
+  jumpHeld: boolean;
 }
 
 export class InputManager {
@@ -12,6 +15,8 @@ export class InputManager {
   private isTouchActive: boolean = false;
   private touchJump: boolean = false;
   private touchSprint: boolean = false;
+  /** Estado del salto en el frame anterior (para detectar el flanco). */
+  private previousJumpHeld: boolean = false;
 
   constructor() {
     this.setupKeyboard();
@@ -51,6 +56,8 @@ export class InputManager {
 
     const onTouchMove = (e: TouchEvent) => {
       if (!this.isTouchActive) return;
+      // Mientras se arrastra el joystick virtual la página no debe desplazarse
+      if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch.identifier === touchId) {
@@ -102,6 +109,9 @@ export class InputManager {
       jumpBtn.addEventListener('touchend', () => {
         this.touchJump = false;
       });
+      jumpBtn.addEventListener('touchcancel', () => {
+        this.touchJump = false;
+      });
     }
 
     const sprintBtn = document.getElementById('btn-touch-sprint');
@@ -135,14 +145,20 @@ export class InputManager {
     }
 
     const isSprinting = Boolean(this.keys['shift'] || this.touchSprint);
-    const jumpPressed = Boolean(this.keys[' '] || this.touchJump);
+
+    // Salto por flanco: jumpPressed sólo es TRUE en el frame en el que se pulsa
+    // la tecla o el botón, de modo que mantener pulsado no encadena saltos.
+    const jumpHeld = Boolean(this.keys[' '] || this.touchJump);
+    const jumpPressed = jumpHeld && !this.previousJumpHeld;
+    this.previousJumpHeld = jumpHeld;
 
     return {
       x,
       y,
       isMoving: len > 0.05,
       isSprinting,
-      jumpPressed
+      jumpPressed,
+      jumpHeld,
     };
   }
 }

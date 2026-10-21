@@ -122,6 +122,9 @@ export class SceneManager {
       this.scene.background = new THREE.Color(0x181c2b);
       this.camera.position.set(0, 1.3, 3.2);
       this.controls.target.set(0, 1.0, 0);
+      // Sincroniza el estado interno de los controles: si no, el amortiguado
+      // residual arrastra la cámara y da un salto al volver al customizer
+      this.controls.update();
     } else {
       this.controls.enabled = false;
       this.floorGroup.visible = false;
