@@ -193,7 +193,7 @@ btnDialogueQuiz?.addEventListener('click', () => {
   if (currentNearFigure) {
     currentNearFigure.puzzleAction();
   } else {
-    const gymPOI = worldEnvironment.pois.find(p => p.id === 'gimnasio');
+    const gymPOI = worldEnvironment.pois.find(p => p.id === 'aula_informatica');
     if (gymPOI) {
       (interactionManager as any).openActivityModal(gymPOI);
     }

@@ -1,4 +1,10 @@
 import * as THREE from 'three';
+import {
+  CRATE_SIZE,
+  CRATE_STACK_POSITIONS,
+  GOLD_PODIUM_POSITION,
+  GOLD_PODIUM_SIZE
+} from './WorldColliders';
 
 export interface PointOfInterest {
   id: string;
@@ -20,6 +26,7 @@ export class WorldEnvironment {
     this.buildSportsCourt();
     this.buildCafeteriaAndGarden();
     this.buildSchoolyardProps();
+    this.setupProps();
     this.setupPOIs();
 
     // Sombras en todo el colegio
@@ -114,7 +121,7 @@ export class WorldEnvironment {
 
   private buildSportsCourt(): void {
     const courtGroup = new THREE.Group();
-    courtGroup.position.set(-6, 0.02, 10);
+    courtGroup.position.set(-6, 0.01, 10);
 
     const courtFloor = new THREE.Mesh(
       new THREE.PlaneGeometry(16, 26),
@@ -305,6 +312,151 @@ export class WorldEnvironment {
     });
   }
 
+  /**
+   * Props escalables del patio: cajas de madera y podio dorado.
+   * Las transformaciones se importan de `WorldColliders.ts` para que la malla
+   * y su colisionador no puedan separarse nunca.
+   */
+  private setupProps(): void {
+    // Cajas de madera apiladas junto al porche del IES
+    CRATE_STACK_POSITIONS.forEach((pos) => {
+      const crate = this.createCrate();
+      crate.position.set(pos[0], pos[1], pos[2]);
+      crate.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      this.group.add(crate);
+    });
+
+    // Podio dorado junto a la portería de fútbol sala
+    const podium = this.createGoldPodium();
+    podium.position.set(
+      GOLD_PODIUM_POSITION[0],
+      GOLD_PODIUM_POSITION[1],
+      GOLD_PODIUM_POSITION[2]
+    );
+    podium.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    this.group.add(podium);
+  }
+
+  /**
+   * Caja de madera low-poly: cuerpo de madera, listones y escuadras metálicas.
+   * El tamaño exterior es exactamente `CRATE_SIZE` en los tres ejes.
+   */
+  private createCrate(): THREE.Group {
+    const crate = new THREE.Group();
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.85 });
+    const plankMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.9 });
+    const bracketMat = new THREE.MeshStandardMaterial({
+      color: 0x64748b,
+      metalness: 0.85,
+      roughness: 0.35
+    });
+
+    // Cuerpo interior (deja los listones y las escuadras por fuera)
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(CRATE_SIZE * 0.92, CRATE_SIZE * 0.92, CRATE_SIZE * 0.92),
+      woodMat
+    );
+    crate.add(body);
+
+    // Listones horizontales: el superior cierra exactamente en +CRATE_SIZE / 2
+    const plankOffsets = [-0.4, 0, 0.4];
+    plankOffsets.forEach((offsetY) => {
+      const plank = new THREE.Mesh(
+        new THREE.BoxGeometry(CRATE_SIZE, 0.1, CRATE_SIZE),
+        plankMat
+      );
+      plank.position.y = offsetY;
+      crate.add(plank);
+    });
+
+    // Escuadras metálicas en las cuatro esquinas
+    const corners: Array<[number, number]> = [
+      [-1, -1], [1, -1], [-1, 1], [1, 1]
+    ];
+    corners.forEach(([sx, sz]) => {
+      const bracket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, CRATE_SIZE, 0.1),
+        bracketMat
+      );
+      bracket.position.set(
+        sx * (CRATE_SIZE / 2 - 0.05),
+        0,
+        sz * (CRATE_SIZE / 2 - 0.05)
+      );
+      crate.add(bracket);
+    });
+
+    return crate;
+  }
+
+  /**
+   * Podio dorado de 1.2 m con la placa "1" en la cara frontal.
+   */
+  private createGoldPodium(): THREE.Group {
+    const podium = new THREE.Group();
+
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xfbbf24,
+      metalness: 0.75,
+      roughness: 0.25,
+      emissive: 0x78350f,
+      emissiveIntensity: 0.35
+    });
+
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(GOLD_PODIUM_SIZE, GOLD_PODIUM_SIZE, GOLD_PODIUM_SIZE),
+      goldMat
+    );
+    podium.add(block);
+
+    // Placa con el número "1" dibujado en un canvas (sin recursos externos)
+    const plateCanvas = document.createElement('canvas');
+    plateCanvas.width = 128;
+    plateCanvas.height = 128;
+    const ctx = plateCanvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(0, 0, 128, 128);
+      ctx.fillStyle = '#78350f';
+      ctx.font = 'bold 104px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('1', 64, 70);
+    }
+
+    const plateTexture = new THREE.CanvasTexture(plateCanvas);
+    plateTexture.colorSpace = THREE.SRGBColorSpace;
+
+    const plateMat = new THREE.MeshStandardMaterial({
+      map: plateTexture,
+      metalness: 0.5,
+      roughness: 0.3,
+      emissive: 0x78350f,
+      emissiveIntensity: 0.25,
+      // Desplazamiento de polígono para que la placa no pelee con la cara del bloque
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1
+    });
+
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), plateMat);
+    plate.position.set(0, 0, GOLD_PODIUM_SIZE / 2);
+    podium.add(plate);
+
+    return podium;
+  }
+
   private setupPOIs(): void {
     this.pois = [
       {
@@ -312,7 +464,7 @@ export class WorldEnvironment {
         name: 'Conserjería y Jefatura de Estudios',
         badge: '🏛️',
         description: 'Circulares del IES, partes de faltas y avisos oficiales.',
-        position: new THREE.Vector3(0, 0, -11.5),
+        position: new THREE.Vector3(0, 0, -11.0),
         radius: 3.5
       },
       {
@@ -320,15 +472,15 @@ export class WorldEnvironment {
         name: 'Pista Polideportiva del Recreo',
         badge: '⚽',
         description: 'Retos de Educación Física, torneos del recreo y tiros a portería.',
-        position: new THREE.Vector3(-6, 0, 10),
+        position: new THREE.Vector3(-6, 0, 16),
         radius: 4.0
       },
       {
-        id: 'gimnasio',
+        id: 'aula_informatica',
         name: 'Aula de Informática y Biblioteca',
         badge: '💻',
         description: 'Cuestionarios oficiales adaptados a tu curso escolar.',
-        position: new THREE.Vector3(13, 0, 8),
+        position: new THREE.Vector3(11.8, 0, 8),
         radius: 3.5
       },
       {
@@ -336,7 +488,7 @@ export class WorldEnvironment {
         name: 'Cantina Escolar del Recreo',
         badge: '🥪',
         description: 'Bocadillos, zumos y descanso durante el recreo.',
-        position: new THREE.Vector3(-18, 0, -13),
+        position: new THREE.Vector3(-15.0, 0, -13.0),
         radius: 3.5
       }
     ];

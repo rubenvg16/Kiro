@@ -81,7 +81,6 @@ export class CollectiblesManager {
         if (item.respawnTime && Date.now() > item.respawnTime) {
           item.collected = false;
           item.mesh.visible = true;
-          item.mesh.scale.set(1, 1, 1);
         }
         return;
       }

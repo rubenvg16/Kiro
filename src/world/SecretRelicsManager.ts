@@ -19,11 +19,16 @@ export class SecretRelicsManager {
   }
 
   private spawnSecretRelics(): void {
+    // Puntos de aparición de las reliquias (todas alcanzables por el alumno)
     const relicSpawns = [
-      { id: 'relic_porch_key', pos: new THREE.Vector3(0, 4.8, -10.2), type: 'key' },
-      { id: 'relic_golden_ball', pos: new THREE.Vector3(0, 2.3, -2.5), type: 'trophy' },
-      { id: 'relic_cajal_microscope', pos: new THREE.Vector3(-26, 0.9, 10), type: 'microscope' },
-      { id: 'relic_cervantes_scroll', pos: new THREE.Vector3(-22, 0.9, -18), type: 'scroll' }
+      // Llave del porche: sobre la pila de cajas de madera
+      { id: 'relic_porch_key', pos: new THREE.Vector3(2.8, 2.15, -10.0), type: 'key' },
+      // Balón dorado: sobre el podio dorado junto a la portería
+      { id: 'relic_golden_ball', pos: new THREE.Vector3(-3.0, 2.0, -2.5), type: 'trophy' },
+      // Microscopio de Cajal: en un hueco libre entre los bancales del huerto
+      { id: 'relic_cajal_microscope', pos: new THREE.Vector3(-26, 0.9, 6.0), type: 'microscope' },
+      // Pergamino de Cervantes: en el exterior de la pared sur de la cantina
+      { id: 'relic_cervantes_scroll', pos: new THREE.Vector3(-22, 0.9, -11.0), type: 'scroll' }
     ];
 
     const goldMat = new THREE.MeshStandardMaterial({

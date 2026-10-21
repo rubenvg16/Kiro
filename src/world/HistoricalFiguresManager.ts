@@ -91,7 +91,7 @@ export class HistoricalFiguresManager {
       hairColor: 0xd1d5db,
       hasTogaTrim: true
     });
-    pythagorasGroup.group.position.set(-6, 0, 10);
+    pythagorasGroup.group.position.set(-6, 0, 6);
     this.group.add(pythagorasGroup.group);
 
     this.figures.push({
@@ -100,7 +100,7 @@ export class HistoricalFiguresManager {
       title: 'Filósofo y Matemático Griego',
       era: 'Grecia Clásica (c. 570 - c. 495 a. C.)',
       badge: '📐',
-      position: new THREE.Vector3(-6, 0, 10),
+      position: new THREE.Vector3(-6, 0, 6),
       mesh: pythagorasGroup.group,
       head: pythagorasGroup.head,
       dialogue: [
