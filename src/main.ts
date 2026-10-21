@@ -900,7 +900,9 @@ function renderQuestsList() {
       <div>
         ${q.completed
           ? `<span class="badge-done" style="color: #34d399; font-weight: 700;">✅ Superado</span>`
-          : `<button class="btn btn-success btn-sm btn-claim" data-id="${q.id}">Completar Reto</button>`
+          : q.available
+            ? `<button class="btn btn-success btn-sm btn-claim" data-id="${q.id}">Completar Reto</button>`
+            : `<span class="badge-locked" style="color: #94a3b8; font-weight: 700;">🔒 Bloqueado</span>`
         }
       </div>
     `;

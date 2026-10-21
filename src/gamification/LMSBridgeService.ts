@@ -11,6 +11,8 @@ export interface LMSQuest {
   rewardXP: number;
   rewardCoins: number;
   completed: boolean;
+  /** FALSE cuando el reto todavía no se puede reclamar. */
+  available: boolean;
 }
 
 /** Recompensa de un reto ya superado. */
@@ -40,7 +42,8 @@ export class LMSBridgeService {
       description: ch.description,
       rewardXP: ch.rewardXP,
       rewardCoins: ch.rewardCoins,
-      completed: progression.progress.completedQuests.includes(ch.id)
+      completed: progression.progress.completedQuests.includes(ch.id),
+      available: true
     }));
 
     return [...courseQuests, this.getCampaignQuest(progression)];
@@ -49,23 +52,31 @@ export class LMSBridgeService {
   /**
    * Reto adicional: el progreso de la campaña de niveles es una fuente de
    * retos que no viene del currículo, así que se expone como quest "adicional".
+   *
+   * Sólo se puede reclamar cuando el alumno ha superado AL MENOS un nivel:
+   * si no, el reto se cobraría al empezar la campaña con la recompensa
+   * mínima y quedaría bloqueado para siempre.
    */
   private static getCampaignQuest(progression: ProgressionManager): LMSQuest {
     const campaign = CampaignProgressStore.load();
     const results = Object.values(campaign.results);
     const completed = results.filter(result => result.completed).length;
-    const total = Math.max(1, Object.keys(campaign.results).length + campaign.unlocked.length);
+    const total = Math.max(1, campaign.unlocked.length);
     const stars = results.reduce((sum, result) => sum + result.stars, 0);
+    const available = completed > 0;
 
     return {
       id: CAMPAIGN_QUEST_ID,
       source: 'adicional',
       title: 'Desafío de la campaña de niveles',
       subject: 'Campaña de Niveles',
-      description: `Supera retos de la campaña del IES: ${completed} nivel(es) completado(s) y ${stars} estrellas conseguidas de ${total} disponibles.`,
+      description: available
+        ? `Supera retos de la campaña del IES: ${completed} nivel(es) completado(s) y ${stars} estrellas conseguidas de ${total} disponibles.`
+        : 'Supera al menos un nivel de la campaña del IES para desbloquear este reto.',
       rewardXP: 120 + stars * 20,
       rewardCoins: 60 + stars * 5,
-      completed: progression.progress.completedQuests.includes(CAMPAIGN_QUEST_ID)
+      completed: progression.progress.completedQuests.includes(CAMPAIGN_QUEST_ID),
+      available
     };
   }
 
@@ -83,6 +94,8 @@ export class LMSBridgeService {
 
     const quest = this.getQuests().find(candidate => candidate.id === questId);
     if (!quest) return null;
+    // Un reto bloqueado (aún sin requisitos cumplidos) no se puede reclamar
+    if (!quest.available) return null;
 
     progression.progress.completedQuests.push(questId);
     return { xp: quest.rewardXP, coins: quest.rewardCoins };
