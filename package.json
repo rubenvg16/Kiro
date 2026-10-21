@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test:physics": "node --experimental-strip-types src/core/physics/sanity.ts"
   },
   "dependencies": {
     "three": "^0.170.0"
