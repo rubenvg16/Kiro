@@ -8,22 +8,12 @@ import { LEVELS } from './levels/index';
 import { LEVEL_ORIGIN } from './types';
 import type { LevelDefinition, LevelObjective, LevelResult, LevelRuntimeState } from './types';
 
-/** Radio del personaje (el mismo que usa el controlador de físicas). */
-const PLAYER_RADIUS = 0.35;
-/** Margen extra de alcance del empujón. */
-const PUSH_MARGIN = 0.15;
-/** Factor de velocidad: el cuerpo empujado va algo más rápido que el jugador. */
-const PUSH_SPEED_FACTOR = 1.1;
-/** Suavizado del empujón por frame (a 60 fps). */
-const PUSH_BLEND = 0.25;
-/** Masa de referencia: un cuerpo más pesado acelera menos. */
-const REFERENCE_MASS = 1.2;
-/** Velocidad máxima a la que se puede empujar un cuerpo. */
-const MAX_PUSH_SPEED = 14;
 /** Distancia de recogida de una ficha. */
 const PICKUP_RADIUS = 1.2;
 /** Intervalo mínimo entre emissions de progreso (evita saturar el DOM). */
 const PROGRESS_EMIT_INTERVAL = 0.2;
+/** Intervalo mínimo entre dos pistas idénticas (evita el toast por frame). */
+const HINT_MIN_INTERVAL = 2;
 /** Altura por debajo de la cual el jugador debe reaparecer. */
 const KILL_PLANE_Y = -3;
 /** Radio horizontal de activación de un checkpoint. */
@@ -77,10 +67,12 @@ export class LevelManager {
   private completed = false;
   private spawnWorld = LEVEL_ORIGIN.clone();
   private lastCheckpoint: THREE.Vector3 | null = null;
-  private previousPlayerPosition: THREE.Vector3 | null = null;
-  private playerVelocity = new THREE.Vector3();
   private progressTimer = 0;
   private awaitingRespawn = false;
+  /** Último texto de pista emitido, para no repetirlo cada frame. */
+  private lastHint = '';
+  /** Segundos restantes hasta que se puede repetir la misma pista. */
+  private hintCooldown = 0;
 
   constructor(scene: THREE.Scene, world: PhysicsWorld) {
     this.scene = scene;
@@ -146,8 +138,6 @@ export class LevelManager {
     this.completed = false;
     this.progressTimer = 0;
     this.awaitingRespawn = false;
-    this.previousPlayerPosition = null;
-    this.playerVelocity.set(0, 0, 0);
     this.lastCheckpoint = null;
     this.spawnWorld = level.spawn.clone().add(LEVEL_ORIGIN);
 
@@ -175,8 +165,8 @@ export class LevelManager {
     this.stars = 0;
     this.completed = false;
     this.lastCheckpoint = null;
-    this.previousPlayerPosition = null;
-    this.playerVelocity.set(0, 0, 0);
+    this.lastHint = '';
+    this.hintCooldown = 0;
   }
 
   /** Reinicia el nivel actual desde cero. */
@@ -220,14 +210,13 @@ export class LevelManager {
 
     const safeDelta = Math.max(0, Math.min(delta, 0.1));
 
-    this.updatePlayerVelocity(safeDelta, playerPosition);
+    this.hintCooldown = Math.max(0, this.hintCooldown - safeDelta);
     this.updateRespawn(playerPosition);
     this.updateCheckpoints(playerPosition);
     builder.update(safeDelta);
 
     if (!this.completed) {
       this.elapsed += safeDelta;
-      this.updatePushables(safeDelta, playerPosition);
       this.updateCollectibles(playerPosition);
       this.updatePhysicsObjective();
       this.updateGoal(playerPosition);
@@ -243,22 +232,6 @@ export class LevelManager {
   // ---------------------------------------------------------------------------
   // Internos
   // ---------------------------------------------------------------------------
-
-  private updatePlayerVelocity(delta: number, playerPosition: THREE.Vector3): void {
-    if (!this.previousPlayerPosition) {
-      this.previousPlayerPosition = playerPosition.clone();
-      return;
-    }
-    if (delta <= 0) return;
-
-    const dx = (playerPosition.x - this.previousPlayerPosition.x) / delta;
-    const dz = (playerPosition.z - this.previousPlayerPosition.z) / delta;
-    this.previousPlayerPosition.copy(playerPosition);
-
-    // Suavizado para evitar ruido de la animación del avatar.
-    this.playerVelocity.x += (dx - this.playerVelocity.x) * 0.5;
-    this.playerVelocity.z += (dz - this.playerVelocity.z) * 0.5;
-  }
 
   /** Pide reaparecer cuando el jugador cae por debajo del plano de muerte. */
   private updateRespawn(playerPosition: THREE.Vector3): void {
@@ -283,62 +256,6 @@ export class LevelManager {
       const dy = Math.abs(checkpoint.y - playerPosition.y);
       if (dx * dx + dz * dz <= CHECKPOINT_RADIUS * CHECKPOINT_RADIUS && dy <= 2) {
         this.lastCheckpoint = checkpoint.clone();
-      }
-    }
-  }
-
-  /**
-   * Empuja los cuerpos dinámicos que el jugador tiene al lado.
-   *
-   * El controlador de personaje solo colisiona con geometría estática, así que
-   * el empuje es manual: se aplica una aceleración horizontal en la dirección
-   * de marcha, escalada por la masa del cuerpo y limitada a 14 m/s.
-   */
-  private updatePushables(delta: number, playerPosition: THREE.Vector3): void {
-    const builder = this.builder;
-    if (!builder) return;
-
-    const speed = Math.hypot(this.playerVelocity.x, this.playerVelocity.z);
-    if (speed < 0.2) return;
-
-    const dirX = this.playerVelocity.x / speed;
-    const dirZ = this.playerVelocity.z / speed;
-
-    for (const body of builder.bodies) {
-      const radius = body.shape === 'sphere' ? body.radius : body.half.length();
-      const dx = body.position.x - playerPosition.x;
-      const dz = body.position.z - playerPosition.z;
-      const distance = Math.hypot(dx, dz);
-      const reach = PLAYER_RADIUS + radius + PUSH_MARGIN;
-      if (distance > reach) continue;
-
-      // Impulso horizontal en la dirección de marcha: el cuerpo persigue la
-      // velocidad del jugador (sensación de empujón continuo) y los cuerpos
-      // más pesados responden más despacio.
-      const targetSpeed = Math.min(speed * PUSH_SPEED_FACTOR, MAX_PUSH_SPEED);
-      const desiredX = dirX * targetSpeed;
-      const desiredZ = dirZ * targetSpeed;
-
-      const massFactor = REFERENCE_MASS / Math.max(body.mass, 0.1);
-      const blend = Math.min(1, PUSH_BLEND * massFactor * delta * 60);
-      body.velocity.x += (desiredX - body.velocity.x) * blend;
-      body.velocity.z += (desiredZ - body.velocity.z) * blend;
-
-      const horizontalSpeed = Math.hypot(body.velocity.x, body.velocity.z);
-      if (horizontalSpeed > MAX_PUSH_SPEED) {
-        const scale = MAX_PUSH_SPEED / horizontalSpeed;
-        body.velocity.x *= scale;
-        body.velocity.z *= scale;
-      }
-
-      // Si el cuerpo queda metido dentro del avatar se lo empuja hacia fuera.
-      const overlap = PLAYER_RADIUS + radius - distance;
-      if (overlap > 0) {
-        const awayX = distance > 0.001 ? dx / distance : -dirX;
-        const awayZ = distance > 0.001 ? dz / distance : -dirZ;
-        body.position.x += awayX * overlap;
-        body.position.z += awayZ * overlap;
-        if (body.mesh) body.mesh.position.copy(body.position);
       }
     }
   }
@@ -410,7 +327,7 @@ export class LevelManager {
 
     const missing = this.missingObjectives();
     if (missing.length > 0) {
-      this.onHint?.(missing.join(' y '));
+      this.emitHint(missing.join(' y '));
       return;
     }
 
@@ -454,7 +371,21 @@ export class LevelManager {
   /** Pista corta cuando aún falta algo por hacer. */
   private emitHintIfNeeded(): void {
     const missing = this.missingObjectives();
-    if (missing.length > 0) this.onHint?.(missing.join(' y '));
+    if (missing.length > 0) this.emitHint(missing.join(' y '));
+  }
+
+  /**
+   * Emite una pista sin repetirla cada frame: la misma pista sólo se repite
+   * pasado `HINT_MIN_INTERVAL` segundos, y un texto nuevo se emite de
+   * inmediato.
+   */
+  private emitHint(message: string): void {
+    if (message.length === 0) return;
+    if (message === this.lastHint && this.hintCooldown > 0) return;
+
+    this.lastHint = message;
+    this.hintCooldown = HINT_MIN_INTERVAL;
+    this.onHint?.(message);
   }
 
   private completeLevel(): void {

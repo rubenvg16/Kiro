@@ -19,12 +19,19 @@ export interface PhysicsWorldOptions {
 
 const DEFAULT_GRAVITY = -9.81;
 const DEFAULT_FIXED_STEP = 1 / 120;
-const DEFAULT_MAX_SUB_STEPS = 5;
+/**
+ * 12 sub-steps of 1/120 s cover exactly the 0.1 s that the scene clamps a
+ * frame to, so the physics time base never lags behind the character.
+ */
+const DEFAULT_MAX_SUB_STEPS = 12;
 const GRID_CELL_SIZE = 4;
 const SLEEP_LINEAR_SPEED = 0.05;
 const SLEEP_DELAY = 0.25;
 const WAKE_IMPULSE = 0.4;
+/** Penetration that is left untouched when a contact is resolved. */
 const CONTACT_SLOP = 0.001;
+/** Distance (m) at which a moving body wakes a sleeping neighbour. */
+const WAKE_PROXIMITY = 1;
 /** Below this approach speed (m/s) no bounce is applied, so resting bodies stay put. */
 const RESTITUTION_THRESHOLD = 1;
 const EPS = 1e-8;
@@ -38,6 +45,8 @@ interface Contact {
 interface BodyRuntime {
   /** Continuous time the body has been supported by a surface. */
   supportTime: number;
+  /** True when the last resolution found a surface holding the body up. */
+  supported: boolean;
   /** Position snapshot used to detect programmatic moves of sleeping bodies. */
   sleepPosition: THREE.Vector3;
 }
@@ -279,6 +288,8 @@ export class PhysicsWorld {
   private readonly bodyRuntime = new Map<RigidBody, BodyRuntime>();
   private readonly triggerState = new Map<RigidBody, Map<string, StaticCollider>>();
   private readonly contactState = new Map<RigidBody, Set<string>>();
+  /** Reused buffer with the colliders a body is touching in the current sub-step. */
+  private readonly touchingScratch = new Set<string>();
 
   constructor(options?: PhysicsWorldOptions) {
     this.gravity = options?.gravity ?? DEFAULT_GRAVITY;
@@ -488,7 +499,7 @@ export class PhysicsWorld {
     if (options.mesh) body.mesh = options.mesh;
 
     this.bodies.push(body);
-    this.bodyRuntime.set(body, { supportTime: 0, sleepPosition: body.position.clone() });
+    this.bodyRuntime.set(body, { supportTime: 0, supported: false, sleepPosition: body.position.clone() });
     return body;
   }
 
@@ -524,12 +535,19 @@ export class PhysicsWorld {
   /**
    * Advances the simulation. The frame time is accumulated and consumed in
    * fixed sub-steps so the result does not depend on the frame rate.
+   *
+   * The incoming delta is clamped to the sub-step budget
+   * (`maxSubSteps * fixedStep`) so the world always consumes the whole frame
+   * and can never spiral out of control. With the defaults (12 sub-steps of
+   * 1/120 s) that budget is exactly the 0.1 s the scene clamps a frame to,
+   * so the physics time base never runs slower than the character.
    */
   public step(delta: number): void {
     if (!Number.isFinite(delta) || delta <= 0) return;
 
-    const maxAccumulated = this.fixedStep * this.maxSubSteps;
-    this.accumulator = Math.min(this.accumulator + delta, maxAccumulated);
+    const budget = this.fixedStep * this.maxSubSteps;
+    const frame = Math.min(delta, budget);
+    this.accumulator = Math.min(this.accumulator + frame, budget);
 
     let steps = 0;
     while (this.accumulator >= this.fixedStep && steps < this.maxSubSteps) {
@@ -566,6 +584,25 @@ export class PhysicsWorld {
       const pushed = body.velocity.lengthSq() > 1e-10;
       if (moved || pushed) this.wakeBody(body);
     }
+    this.wakeNearbyBodies();
+  }
+
+  /**
+   * Wakes a sleeping body when another body is moving close to it: a rolling
+   * ball must not be able to sleep while a crate slides past it.
+   */
+  private wakeNearbyBodies(): void {
+    for (const body of this.bodies) {
+      if (!body.sleeping) continue;
+      for (const other of this.bodies) {
+        if (other === body || other.sleeping) continue;
+        if (other.velocity.lengthSq() <= 1e-10) continue;
+        if (body.position.distanceToSquared(other.position) <= WAKE_PROXIMITY * WAKE_PROXIMITY) {
+          this.wakeBody(body);
+          break;
+        }
+      }
+    }
   }
 
   private integrateBody(body: RigidBody, dt: number): void {
@@ -587,13 +624,15 @@ export class PhysicsWorld {
   }
 
   private bodyBounds(body: RigidBody): { minX: number; maxX: number; minZ: number; maxZ: number } {
-    const extent = body.shape === 'box' ? body.half.x : body.radius;
+    // A box is not necessarily cubic: each axis uses its own half extent.
+    const extentX = body.shape === 'box' ? body.half.x : body.radius;
+    const extentZ = body.shape === 'box' ? body.half.z : body.radius;
     const sweep = Math.abs(body.velocity.x) * 1 / 120 + Math.abs(body.velocity.z) * 1 / 120;
     return {
-      minX: body.position.x - extent - sweep,
-      maxX: body.position.x + extent + sweep,
-      minZ: body.position.z - extent - sweep,
-      maxZ: body.position.z + extent + sweep,
+      minX: body.position.x - extentX - sweep,
+      maxX: body.position.x + extentX + sweep,
+      minZ: body.position.z - extentZ - sweep,
+      maxZ: body.position.z + extentZ + sweep,
     };
   }
 
@@ -605,26 +644,30 @@ export class PhysicsWorld {
 
     const runtime = this.bodyRuntime.get(body);
     let supported = false;
+    const touching = this.touchingScratch;
+    touching.clear();
 
     for (const collider of candidates) {
       if (collider.isTrigger) continue;
 
       const contact = scratchContact;
-      let touching = false;
+      let isTouching = false;
       if (body.shape === 'sphere') {
-        touching =
+        isTouching =
           collider.shape === 'box'
             ? sphereBoxContact(body.position, body.radius, collider.center, collider.half, contact)
             : sphereSphereContact(body.position, body.radius, collider.center, collider.radius, contact);
       } else {
-        touching =
+        isTouching =
           collider.shape === 'box'
             ? boxBoxContact(body.position, body.half, collider.center, collider.half, contact)
             : boxSphereContact(body.position, body.half, collider.center, collider.radius, contact);
         // The generic contact normal points from the body towards the obstacle.
-        if (touching) contact.normal.negate();
+        if (isTouching) contact.normal.negate();
       }
-      if (!touching) continue;
+      if (!isTouching) continue;
+
+      touching.add(collider.id);
 
       const impulse = this.applyStaticResponse(body, collider, contact);
       if (contact.normal.y > 0.5) supported = true;
@@ -639,7 +682,21 @@ export class PhysicsWorld {
       }
     }
 
-    if (runtime) runtime.supportTime = supported ? runtime.supportTime : 0;
+    if (runtime) runtime.supported = supported;
+
+    // A contact that no longer exists is forgotten, so that a new contact with
+    // the same collider can be reported again later (a ball that bounces and
+    // lands on the same floor fires the callback twice).
+    this.syncContactState(body, touching);
+  }
+
+  /** Drops the (body, collider) pairs that are not touching any more. */
+  private syncContactState(body: RigidBody, touching: Set<string>): void {
+    const active = this.contactState.get(body);
+    if (!active) return;
+    for (const id of active) {
+      if (!touching.has(id)) active.delete(id);
+    }
   }
 
   private applyStaticResponse(body: RigidBody, collider: StaticCollider, contact: Contact): number {
@@ -805,6 +862,11 @@ export class PhysicsWorld {
     return touching;
   }
 
+  /**
+   * Keeps track of the time a body has been resting on a surface. A body that
+   * stays supported and almost still for `SLEEP_DELAY` seconds goes to sleep
+   * and stops being integrated until something wakes it up again.
+   */
   private updateResting(dt: number): void {
     for (const body of this.bodies) {
       if (body.sleeping) continue;
@@ -812,7 +874,7 @@ export class PhysicsWorld {
       if (!runtime) continue;
 
       const speed = body.velocity.length();
-      if (speed < SLEEP_LINEAR_SPEED && runtime.supportTime > 0) {
+      if (runtime.supported && speed < SLEEP_LINEAR_SPEED) {
         runtime.supportTime += dt;
         if (runtime.supportTime >= SLEEP_DELAY) {
           body.sleeping = true;

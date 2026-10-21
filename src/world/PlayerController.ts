@@ -11,6 +11,8 @@ const TURN_RATE = 14;
 const AUTO_FOLLOW_RATE = 2.2;
 /** Píxeles que hay que mover para considerar que un arrastre es real. */
 const DRAG_THRESHOLD = 4;
+/** Cambio de dirección mínimo para considerar que el jugador ha cambiado de rumbo. */
+const DIRECTION_EPSILON = 0.15;
 
 /** Amortigua un ángulo por el camino más corto, independiente del framerate. */
 function dampAngle(current: number, target: number, rate: number, delta: number): number {
@@ -59,6 +61,8 @@ export class PlayerController {
   private intentZ = 0;
   private intentWorldYaw = 0;
   private hasIntent = false;
+  /** Ya se ha muestreado alguna dirección: permite distinguir "nuevo" de "igual". */
+  private intentSampled = false;
   /** El usuario ha movido la cámara a mano: el auto-follow espera. */
   private manualCamera = false;
 
@@ -156,6 +160,7 @@ export class PlayerController {
     this.avatar.group.rotation.y = 0;
     this.cameraYaw = 0;
     this.hasIntent = false;
+    this.intentSampled = false;
     this.intentX = 0;
     this.intentZ = 0;
     this.manualCamera = false;
@@ -202,10 +207,17 @@ export class PlayerController {
    * dirección. Se hace una sola vez por cambio (no en cada frame) porque la
    * entrada es relativa a la cámara: si se remuestrease cada frame, la cámara
    * y el personaje girarían juntos indefinidamente.
+   *
+   * Soltar el joystick y volver a pulsarlo en la MISMA dirección NO le quita
+   * la cámara al jugador: sólo un cambio real de dirección (o una acción
+   * explícita del usuario, como arrastrar el ratón) vuelve a activar el
+   * auto-follow.
    */
   private updateIntent(input: MovementVector): void {
     const length = Math.hypot(input.x, input.y);
     if (!this.enabled || length <= 0.05) {
+      // Sin movimiento no hay intención, pero la última dirección se
+      // conserva para poder compararla con la siguiente pulsación.
       this.hasIntent = false;
       return;
     }
@@ -213,14 +225,20 @@ export class PlayerController {
     const dirX = input.x / length;
     const dirZ = input.y / length;
     const changed =
-      !this.hasIntent ||
-      Math.abs(dirX - this.intentX) > 0.15 ||
-      Math.abs(dirZ - this.intentZ) > 0.15;
+      !this.intentSampled ||
+      Math.abs(dirX - this.intentX) > DIRECTION_EPSILON ||
+      Math.abs(dirZ - this.intentZ) > DIRECTION_EPSILON;
 
-    if (!changed) return;
+    if (!changed) {
+      // La dirección es la misma que la última vez: el auto-follow sigue
+      // esperando y la cámara se queda donde la dejó el jugador.
+      this.hasIntent = true;
+      return;
+    }
 
     this.intentX = dirX;
     this.intentZ = dirZ;
+    this.intentSampled = true;
     this.hasIntent = true;
     this.manualCamera = false;
 

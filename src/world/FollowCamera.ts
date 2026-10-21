@@ -40,7 +40,13 @@ const MIN_CAMERA_HEIGHT = 0.5;
 /** Margen extra del rayo de obstrucción. */
 const OBSTRUCTION_PADDING = 0.4;
 /** Separación que se deja respecto al obstáculo detectado. */
-const OBSTRUCTION_MARGIN = 0.25;
+const OBSTRUCTION_MARGIN = 0.3;
+/** Separación mínima entre la cámara y el punto de mira del jugador. */
+const CAMERA_MIN_CLEARANCE = 0.35;
+/** Radio de la esfera con la que se comprueba que la cámara está en hueco. */
+const CAMERA_PROBE_RADIUS = 0.2;
+/** Altura extra por intento cuando la cámara queda dentro de la geometría. */
+const FALLBACK_STEP = 0.75;
 
 const EPS = 1e-6;
 
@@ -70,6 +76,7 @@ export class FollowCamera {
   private readonly smoothedLookAt = new THREE.Vector3();
   private readonly toCamera = new THREE.Vector3();
   private readonly currentLookDirection = new THREE.Vector3(0, 0, -1);
+  private readonly scratch = new THREE.Vector3();
   private initialised = false;
 
   constructor(camera: THREE.PerspectiveCamera, options?: Partial<FollowCameraOptions>) {
@@ -156,11 +163,68 @@ export class FollowCamera {
 
     this.toCamera.multiplyScalar(1 / distance);
     const hit = world.raycast(this.lookTarget, this.toCamera, distance + OBSTRUCTION_PADDING);
-    if (!hit || hit.distance >= distance) return;
+    if (!hit) return;
 
-    const allowed = Math.max(this.options.minDistance, hit.distance - OBSTRUCTION_MARGIN);
-    this.desiredPosition.copy(this.lookTarget).addScaledVector(this.toCamera, allowed);
+    if (hit.distance <= EPS) {
+      // El origen del rayo está dentro de la geometría: detrás del jugador no
+      // hay sitio. La cámara se coloca en un sitio seguro y determinista
+      // (encima del jugador, mirando hacia abajo) en vez de dentro del muro.
+      this.applySafeFallback(target, world);
+      return;
+    }
+
+    if (hit.distance >= distance) return;
+
+    // La cámara se queda DENTRO del espacio libre: nunca más lejos del
+    // obstáculo detectado y nunca dentro de él. La distancia mínima preferida
+    // (`minDistance`) sólo se respeta si el muro lo permite.
+    const free = Math.max(0, hit.distance - OBSTRUCTION_MARGIN);
+    const allowed = Math.min(Math.max(this.options.minDistance, free), free, distance);
+    this.placeAtDistance(Math.max(CAMERA_MIN_CLEARANCE, allowed), target);
+
+    // Garantía final: la cámara no puede quedar dentro de un sólido.
+    this.pullInsideFreeSpace(world, target);
+  }
+
+  /** Coloca la cámara a `distance` del punto de mira, en la dirección actual. */
+  private placeAtDistance(distance: number, target: THREE.Vector3): void {
+    this.desiredPosition.copy(this.lookTarget).addScaledVector(this.toCamera, distance);
     this.desiredPosition.y = Math.max(this.desiredPosition.y, target.y + MIN_CAMERA_HEIGHT);
+  }
+
+  /**
+   * Si la posición calculada está dentro de un sólido, la cámara se acerca
+   * al jugador hasta salir del muro. Si detrás del jugador no hay sitio
+   * utilizable, se pasa a la posición de seguridad.
+   */
+  private pullInsideFreeSpace(world: PhysicsWorld, target: THREE.Vector3): void {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (world.overlapSphere(this.desiredPosition, CAMERA_PROBE_RADIUS).length === 0) return;
+      const distance = this.desiredPosition.distanceTo(this.lookTarget);
+      if (distance <= CAMERA_MIN_CLEARANCE) {
+        // Detrás del jugador no hay sitio: se busca una posición segura.
+        this.applySafeFallback(target, world);
+        return;
+      }
+      this.placeAtDistance(distance * 0.5, target);
+    }
+    this.applySafeFallback(target, world);
+  }
+
+  /**
+   * Posición de seguridad cuando el rayo de obstrucción nace dentro de la
+   * geometría: encima del jugador, mirando hacia abajo. Si tampoco hay hueco
+   * se sube un poco más.
+   */
+  private applySafeFallback(target: THREE.Vector3, world: PhysicsWorld): void {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      this.scratch.set(target.x, target.y + this.options.height + attempt * FALLBACK_STEP, target.z);
+      if (world.overlapSphere(this.scratch, CAMERA_PROBE_RADIUS).length === 0) {
+        this.desiredPosition.copy(this.scratch);
+        return;
+      }
+    }
+    this.desiredPosition.set(target.x, target.y + this.options.height, target.z);
   }
 
   /** Aplica la posición y la orientación calculadas a la cámara real. */
