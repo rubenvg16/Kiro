@@ -1,3 +1,4 @@
+import { HUD } from './world/HUD';
 import * as THREE from 'three';
 import { SceneManager } from './core/SceneManager';
 import { PhysicsWorld } from './core/physics';
@@ -958,3 +959,6 @@ progression.subscribe((p) => {
   renderShop();
   renderAccessoryButtons();
 });
+
+// Inicializar HUD extendido
+HUD.getInstance();

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LEVELS } from '../../levels/levels/index';
 import { CampaignProgressStore } from '../../gamification/CampaignProgress';
-import type { CampaignProgress } from '../CampaignProgress';
+import type { CampaignProgress } from '../../gamification/CampaignProgress';
 
 describe('Level Campaign 15 Levels & Progression', () => {
   beforeEach(() => {
