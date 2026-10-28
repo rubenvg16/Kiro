@@ -13,6 +13,17 @@ export const LEVEL_ORIGIN = new THREE.Vector3(200, 0, 200);
 
 export type LevelDifficulty = 'facil' | 'media' | 'dificil';
 
+export type UniqueMechanic =
+  | 'timed_platforming'
+  | 'gravity_inversion'
+  | 'magnetic_blocks'
+  | 'fog_of_war'
+  | 'mirror_rooms'
+  | 'ice_surfaces'
+  | 'wind_gusts';
+
+export type DifficultyTier = 'explorador' | 'investigador' | 'maestro';
+
 export interface LevelObjective {
   /** Número de fichas que hay que recoger (0 = ninguna). */
   collect: number;
@@ -32,11 +43,16 @@ export interface LevelDefinition {
   name: string;
   description: string;
   difficulty: LevelDifficulty;
+  tier?: DifficultyTier;
+  uniqueMechanic?: UniqueMechanic;
+  mechanicHint?: string;
   parTimeSeconds: number;
   rewards: LevelRewards;
   /** Punto de aparición en coordenadas LOCALES de la arena. */
   spawn: THREE.Vector3;
   objective: LevelObjective;
+  hasHybridGate?: boolean;
+  isChallengeVariant?: boolean;
   build(ctx: LevelBuildContext): void;
 }
 

@@ -14,6 +14,9 @@ export const PATIO_LEVEL: LevelDefinition = {
   description:
     'Tu primer recreo en el instituto: recorre el patio, sube las escaleras y recoge todas las fichas antes de llegar a la meta.',
   difficulty: 'facil',
+  tier: 'explorador',
+  uniqueMechanic: 'timed_platforming',
+  mechanicHint: 'Salta y mantén el ritmo para superar las plataformas antes de que termine el tiempo.',
   parTimeSeconds: 60,
   rewards: { xp: 80, coins: 30 },
   spawn: new THREE.Vector3(0, 0.1, -11),

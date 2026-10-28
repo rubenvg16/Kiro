@@ -9,16 +9,18 @@ export interface CampaignLevelResult {
   completed: boolean;
   stars: number;
   bestTimeSeconds: number | null;
+  challengeVariantUnlocked?: boolean;
 }
 
 export interface CampaignProgress {
   /** Ids de los niveles desbloqueados explícitamente. */
   unlocked: string[];
   results: Record<string, CampaignLevelResult>;
+  levelBadges?: string[];
 }
 
 function createEmptyProgress(): CampaignProgress {
-  return { unlocked: [], results: {} };
+  return { unlocked: [], results: {}, levelBadges: [] };
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -31,7 +33,8 @@ function sanitizeLevelResult(raw: unknown): CampaignLevelResult | null {
   const stars = isFiniteNumber(source.stars) ? Math.max(0, Math.min(3, Math.round(source.stars))) : 0;
   const completed = source.completed === true;
   const bestTimeSeconds = isFiniteNumber(source.bestTimeSeconds) ? Math.max(0, source.bestTimeSeconds) : null;
-  return { completed, stars, bestTimeSeconds };
+  const challengeVariantUnlocked = source.challengeVariantUnlocked === true;
+  return { completed, stars, bestTimeSeconds, challengeVariantUnlocked };
 }
 
 export class CampaignProgressStore {
@@ -112,20 +115,39 @@ export class CampaignProgressStore {
     const previous = progress.results[levelId];
     const previousBest = previous?.bestTimeSeconds ?? null;
     const isNewBest = previousBest === null || safeTime < previousBest;
+    const challengeVariantUnlocked =
+      previous?.challengeVariantUnlocked === true || safeStars >= 3;
 
     const next: CampaignProgress = {
       unlocked: [...progress.unlocked],
+      levelBadges: [...(progress.levelBadges || [])],
       results: {
         ...progress.results,
         [levelId]: {
           completed: true,
           stars: Math.max(previous?.stars ?? 0, safeStars),
           bestTimeSeconds: isNewBest ? safeTime : previousBest,
+          challengeVariantUnlocked,
         },
       },
     };
 
     return { progress: next, isNewBest };
+  }
+
+  public static addLevelBadge(progress: CampaignProgress, badgeId: string): CampaignProgress {
+    const badges = progress.levelBadges || [];
+    if (!badges.includes(badgeId)) {
+      return {
+        ...progress,
+        levelBadges: [...badges, badgeId]
+      };
+    }
+    return progress;
+  }
+
+  public static hasLevelBadge(progress: CampaignProgress, badgeId: string): boolean {
+    return (progress.levelBadges || []).includes(badgeId);
   }
 
   /** Borra todo el progreso de la campaña. */

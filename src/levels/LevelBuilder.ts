@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { PhysicsWorld } from '../core/physics/PhysicsWorld';
 import type { RigidBody } from '../core/physics/types';
-import { LEVEL_ORIGIN } from './types';
+import { LEVEL_ORIGIN, UniqueMechanic } from './types';
 
 /** Estilos visuales compartidos por los elementos del nivel. */
 export interface LevelBuilderOptions {
@@ -469,6 +469,106 @@ export class LevelBuilder {
     this.trackMesh(mesh);
 
     this.checkpoints.push(this.toWorld(o.x, o.y, o.z));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Extensiones de Mecánicas Únicas, Puertas Híbridas y Efectos Emisivos
+  // ---------------------------------------------------------------------------
+
+  public activeMechanic: UniqueMechanic | null = null;
+  public mechanicHint: string = '';
+
+  public setUniqueMechanic(mechanic: UniqueMechanic, hint: string = ''): void {
+    this.activeMechanic = mechanic;
+    this.mechanicHint = hint;
+  }
+
+  /**
+   * Plataforma con material emisivo para efectos atmosféricos (lava glow, neón, etc.).
+   */
+  public emissivePlatform(o: LevelBoxOptions): THREE.Mesh {
+    return this.box({
+      ...o,
+      emissive: o.emissive ?? 0x38bdf8,
+      roughness: 0.3,
+      metalness: 0.2
+    });
+  }
+
+  /**
+   * Tira de luz de neón para pasillos y límites de arena.
+   */
+  public neonLightStrip(o: LevelBoxOptions): THREE.Mesh {
+    return this.visualBox({
+      ...o,
+      color: o.color ?? 0x67e8f9,
+      emissive: o.emissive ?? 0x06b6d4,
+      roughness: 0.1,
+      metalness: 0.9
+    });
+  }
+
+  /**
+   * Puerta con reto híbrido curricular (Req 7.4).
+   * Genera el arco bloqueado y una zona de interacción de puerta.
+   */
+  public buildHybridGate(o: {
+    x: number;
+    y: number;
+    z: number;
+    w?: number;
+    h?: number;
+    d?: number;
+    question?: string;
+    answer?: string;
+  }): THREE.Mesh {
+    const w = o.w ?? 3;
+    const h = o.h ?? 3.5;
+    const d = o.d ?? 0.5;
+
+    // Postes laterales
+    this.box({ x: o.x - w / 2, y: o.y + h / 2, z: o.z, w: 0.5, h, d: 0.6, color: 0x475569, metalness: 0.8 });
+    this.box({ x: o.x + w / 2, y: o.y + h / 2, z: o.z, w: 0.5, h, d: 0.6, color: 0x475569, metalness: 0.8 });
+    this.box({ x: o.x, y: o.y + h, z: o.z, w: w + 0.5, h: 0.5, d: 0.6, color: 0x1e293b, metalness: 0.8 });
+
+    // Barrera de energía emisiva que bloquea el paso
+    const gateMesh = this.box({
+      x: o.x,
+      y: o.y + h / 2 - 0.25,
+      z: o.z,
+      w: w - 0.2,
+      h: h - 0.5,
+      d: 0.2,
+      color: 0x0284c7,
+      emissive: 0x38bdf8
+    });
+
+    return gateMesh;
+  }
+
+  /**
+   * Aleatoriza las posiciones de al menos el 30% de las fichas coleccionables
+   * en rejugadas del nivel (Req 7.7).
+   */
+  public randomizeCollectiblePositions(fraction: number = 0.35): void {
+    if (this.collectibles.length === 0) return;
+
+    const countToRandomize = Math.max(1, Math.ceil(this.collectibles.length * Math.max(0.3, fraction)));
+    const shuffledIndices = this.collectibles
+      .map((_, i) => i)
+      .sort(() => 0.5 - Math.random())
+      .slice(0, countToRandomize);
+
+    for (const idx of shuffledIndices) {
+      const col = this.collectibles[idx];
+      const offsetX = (Math.random() - 0.5) * 3.5;
+      const offsetZ = (Math.random() - 0.5) * 3.5;
+
+      col.position.x += offsetX;
+      col.position.z += offsetZ;
+      col.mesh.position.x = col.position.x;
+      col.mesh.position.z = col.position.z;
+    }
   }
 
   // ---------------------------------------------------------------------------

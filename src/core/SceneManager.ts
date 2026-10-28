@@ -160,6 +160,39 @@ export class SceneManager {
     this.onUpdateCallback = callback;
   }
 
+  /**
+   * Applies lighting and fog specific to the active zone.
+   */
+  public applyZoneEnvironment(zone: { ambientColor: number; fogColor: number; fogNear: number; fogFar: number }): void {
+    this.scene.background = new THREE.Color(zone.ambientColor);
+    this.scene.fog = new THREE.Fog(zone.fogColor, zone.fogNear, zone.fogFar);
+  }
+
+  /**
+   * Adjusts lighting and sky colors across day/night phases.
+   */
+  public applyDayNightLighting(_normalized: number, phase: 'morning' | 'afternoon' | 'evening' | 'night'): void {
+    let skyColor = 0x93c5fd;
+
+    if (phase === 'morning') {
+      skyColor = 0xfde68a;
+      this.dirLight.intensity = 1.0;
+    } else if (phase === 'afternoon') {
+      skyColor = 0x93c5fd;
+      this.dirLight.intensity = 1.3;
+    } else if (phase === 'evening') {
+      skyColor = 0xf97316;
+      this.dirLight.intensity = 0.6;
+    } else if (phase === 'night') {
+      skyColor = 0x0f172a;
+      this.dirLight.intensity = 0.2; // 20% daytime value (Req 12.3)
+    }
+
+    if (this.scene.background instanceof THREE.Color) {
+      this.scene.background.setHex(skyColor);
+    }
+  }
+
   private onWindowResize(): void {
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;

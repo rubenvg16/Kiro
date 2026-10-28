@@ -1591,3 +1591,533 @@ body, html {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ==========================================================================
+   Profile Selection Screen Overlay
+   ========================================================================== */
+.profile-select-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: radial-gradient(circle at center, rgba(18, 21, 30, 0.94) 0%, rgba(10, 12, 18, 0.98) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(8px);
+}
+
+.profile-select-modal {
+  width: 100%;
+  max-width: 960px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  animation: modalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.profile-select-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.profile-select-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.profile-select-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.profile-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.profile-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.profile-avatar-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.profile-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.profile-rank-tag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold-color);
+  font-weight: 600;
+}
+
+.profile-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+}
+
+.profile-stat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-secondary);
+}
+
+.profile-stat-item .stat-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.profile-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-secondary-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-secondary-actions button {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 6px;
+}
+
+.new-profile-card {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.01);
+  cursor: pointer;
+  min-height: 240px;
+}
+
+.new-profile-card:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: var(--accent-color);
+}
+
+.new-profile-card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.new-profile-icon {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+}
+
+/* ==========================================================================
+   Zone Title Card Overlay (First Entry Notification)
+   ========================================================================== */
+.zone-title-card {
+  position: fixed;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  text-align: center;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  padding: 16px 36px;
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  animation: titleCardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.zone-title-card.fade-out {
+  opacity: 0;
+  transform: translate(-50%, -15px);
+}
+
+@keyframes titleCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.zone-title-badge {
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  font-weight: 800;
+  color: var(--accent-color);
+  margin-bottom: 4px;
+}
+
+.zone-title-name {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 6px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.zone-title-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  max-width: 380px;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Dialogue System Modal & Typewriter Box
+   ========================================================================== */
+.dialogue-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 24px 32px 24px;
+  pointer-events: auto;
+}
+
+.dialogue-box {
+  width: 100%;
+  max-width: 860px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  animation: dialogueSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dialogueSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dialogue-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.dialogue-speaker-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.dialogue-speaker-info {
+  flex: 1;
+}
+
+.dialogue-speaker-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.dialogue-speaker-role {
+  font-size: 0.8rem;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.dialogue-body {
+  min-height: 85px;
+  cursor: pointer;
+  padding: 10px 0;
+  position: relative;
+}
+
+.dialogue-text {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.dialogue-advance-hint {
+  display: none;
+  font-size: 0.75rem;
+  color: var(--accent-color);
+  text-align: right;
+  margin-top: 8px;
+  font-weight: 600;
+  animation: pulseHint 1s infinite alternate;
+}
+
+@keyframes pulseHint {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+.dialogue-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.btn-dialogue-choice {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  border-radius: 10px;
+}
+
+/* ==========================================================================
+   Quest Journal UIModal
+   ========================================================================== */
+.quest-journal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(10, 14, 23, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.quest-journal-box {
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: modalScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quest-journal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 16px;
+}
+
+.quest-journal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quest-journal-icon {
+  font-size: 1.8rem;
+}
+
+.quest-journal-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.quest-journal-section .section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.quest-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.quest-card.active-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.quest-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.quest-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.quest-reward-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gold-color);
+  background: rgba(245, 158, 11, 0.15);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.quest-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.quest-objectives-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.objective-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.objective-item.current-objective {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.objective-item.completed-objective {
+  color: var(--success-color);
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.completed-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.completed-check-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--success-color);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.completed-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.completed-id {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.completed-badge {
+  font-size: 0.72rem;
+  color: var(--success-color);
+}
+
+
+
+

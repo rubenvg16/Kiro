@@ -16,6 +16,9 @@ export const RELOJ_LEVEL: LevelDefinition = {
   description:
     'Sube los tres cuerpos de la torre del reloj, recoge las diez fichas y mete una pelota en el Corner del reloj.',
   difficulty: 'dificil',
+  tier: 'explorador',
+  uniqueMechanic: 'magnetic_blocks',
+  mechanicHint: 'Engranajes y campos magnéticos: atrae los bloques para formar puentes estables.',
   parTimeSeconds: 150,
   rewards: { xp: 260, coins: 100 },
   spawn: new THREE.Vector3(0, 0.1, 6.5),

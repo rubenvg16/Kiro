@@ -1,3 +1,5 @@
+import { EventBus } from '../core/EventBus';
+
 export interface StudentProgress {
   level: number;
   xp: number;
@@ -7,6 +9,7 @@ export interface StudentProgress {
   unlockedItems: string[];
   unlockedRelics: string[];
   completedQuests: string[];
+  skillPoints?: number;
 }
 
 export interface RelicMeta {
@@ -121,6 +124,10 @@ export class ProgressionManager {
     return ProgressionManager.instance;
   }
 
+  public static resetInstance(): void {
+    ProgressionManager.instance = null as any;
+  }
+
   private getRankForLevel(level: number): string {
     const match = [...RANKS].reverse().find(r => level >= r.level);
     return match ? match.title : 'Novato del Recreo';
@@ -136,7 +143,8 @@ export class ProgressionManager {
       rankTitle: 'Novato del Recreo',
       unlockedItems: ['none'],
       unlockedRelics: [],
-      completedQuests: []
+      completedQuests: [],
+      skillPoints: 0
     };
   }
 
@@ -169,7 +177,8 @@ export class ProgressionManager {
         rankTitle: this.getRankForLevel(level),
         unlockedItems,
         unlockedRelics: sanitizeIdList(source.unlockedRelics),
-        completedQuests: sanitizeIdList(source.completedQuests)
+        completedQuests: sanitizeIdList(source.completedQuests),
+        skillPoints: clampInt(source.skillPoints, 0, 1000, fallback.skillPoints || 0)
       };
     } catch (e) {
       console.warn('Error al cargar progreso:', e);
@@ -206,11 +215,41 @@ export class ProgressionManager {
       this.progress.level += 1;
       this.progress.xpToNextLevel = xpToNextLevelFor(this.progress.level);
       this.progress.coins += 60;
+      this.progress.skillPoints = (this.progress.skillPoints || 0) + 1;
       leveledUp = true;
+      try {
+        EventBus.getInstance().emit('player:levelup', { newLevel: this.progress.level });
+      } catch {
+        // Safe fallback in isolated test environments
+      }
     }
 
     if (save) this.saveProgress();
     return leveledUp;
+  }
+
+  public getSkillPoints(): number {
+    return this.progress.skillPoints || 0;
+  }
+
+  public addSkillPoints(amount: number): void {
+    if (amount <= 0) return;
+    this.progress.skillPoints = (this.progress.skillPoints || 0) + amount;
+    this.saveProgress();
+  }
+
+  public spendSkillPoints(amount: number = 1): boolean {
+    const current = this.progress.skillPoints || 0;
+    if (current >= amount && amount > 0) {
+      this.progress.skillPoints = current - amount;
+      this.saveProgress();
+      return true;
+    }
+    return false;
+  }
+
+  public hasItem(itemId: string): boolean {
+    return this.progress.unlockedItems.includes(itemId);
   }
 
   /**

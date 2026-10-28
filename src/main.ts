@@ -25,6 +25,10 @@ import { LevelManager } from './levels/LevelManager';
 import { LEVEL_ORIGIN } from './levels/types';
 import type { LevelDefinition, LevelResult, LevelRuntimeState } from './levels/types';
 import { PuzzleEngine } from './puzzles/PuzzleEngine';
+import { GameBootstrap } from './core/GameBootstrap';
+
+// Inicializar orquestador de ciclo de vida del juego
+GameBootstrap.getInstance().init();
 
 /**
  * Búsqueda tipada de elementos del DOM. Devuelve NULL si no existe, de modo

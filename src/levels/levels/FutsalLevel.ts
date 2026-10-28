@@ -14,6 +14,9 @@ export const FUTSAL_LEVEL: LevelDefinition = {
   description:
     'Empuja las pelotas hasta las porterías y marca dos goles. Vigila las barreras: los cajones también estorban.',
   difficulty: 'media',
+  tier: 'explorador',
+  uniqueMechanic: 'ice_surfaces',
+  mechanicHint: 'Superficie pulida de baja fricción: calcula la inercia del balón y del avatar.',
   parTimeSeconds: 90,
   rewards: { xp: 120, coins: 50 },
   spawn: new THREE.Vector3(0, 0.1, -9),

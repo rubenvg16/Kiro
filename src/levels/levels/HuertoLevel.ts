@@ -15,6 +15,9 @@ export const HUERTO_LEVEL: LevelDefinition = {
   description:
     'Trabaja el huerto de ciencias: aparta los cajones, salta a la plataforma y recoge todas las semillas.',
   difficulty: 'media',
+  tier: 'explorador',
+  uniqueMechanic: 'wind_gusts',
+  mechanicHint: 'Ráfagas de viento del valle: vigila el balanceo para no caer de los bancales.',
   parTimeSeconds: 110,
   rewards: { xp: 150, coins: 60 },
   spawn: new THREE.Vector3(0, 0.1, 14),

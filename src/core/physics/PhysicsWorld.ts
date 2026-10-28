@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { EventBus } from '../EventBus';
 import type {
   BoxCollider,
   RaycastHit,
@@ -281,6 +282,9 @@ export class PhysicsWorld {
   /** Fired when a body starts touching a solid collider. `impulse` is the contact impulse in N·s. */
   public onBodyContact?: (body: RigidBody, collider: StaticCollider, impulse: number) => void;
 
+  /** Surface friction multiplier (e.g. 0.7 during rain, 1.0 normally). */
+  public frictionMultiplier = 1.0;
+
   private accumulator = 0;
   private nextStaticId = 0;
   private readonly grid = new Map<string, StaticCollider[]>();
@@ -295,6 +299,10 @@ export class PhysicsWorld {
     this.gravity = options?.gravity ?? DEFAULT_GRAVITY;
     this.fixedStep = options?.fixedStep ?? DEFAULT_FIXED_STEP;
     this.maxSubSteps = options?.maxSubSteps ?? DEFAULT_MAX_SUB_STEPS;
+
+    EventBus.getInstance().on('weather:changed', (e) => {
+      this.frictionMultiplier = e.state === 'rain' ? 0.7 : 1.0;
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -722,7 +730,7 @@ export class PhysicsWorld {
     velocity.addScaledVector(contact.normal, normalDelta);
 
     if (tangentLength > EPS) {
-      const friction = Math.sqrt(body.friction * collider.friction);
+      const friction = Math.sqrt(body.friction * collider.friction) * this.frictionMultiplier;
       const maxDelta = friction * normalDelta;
       const scale = Math.min(1, maxDelta / tangentLength);
       velocity.x -= tangentX * scale;
@@ -790,7 +798,7 @@ export class PhysicsWorld {
       const dirX = tangentX / tangentLength;
       const dirY = tangentY / tangentLength;
       const dirZ = tangentZ / tangentLength;
-      const friction = Math.sqrt(a.friction * b.friction);
+      const friction = Math.sqrt(a.friction * b.friction) * this.frictionMultiplier;
       let tangentImpulse = -(relativeX * dirX + relativeY * dirY + relativeZ * dirZ) / inverseMassSum;
       const maxTangent = friction * normalImpulse;
       if (Math.abs(tangentImpulse) > maxTangent) tangentImpulse = Math.sign(tangentImpulse) * maxTangent;

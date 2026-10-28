@@ -23,6 +23,9 @@ export const PARKOUR_LEVEL: LevelDefinition = {
   description:
     'Salta de plataforma en plataforma por el porche. Si caes, el último checkpoint te salva: no te rindas.',
   difficulty: 'dificil',
+  tier: 'explorador',
+  uniqueMechanic: 'timed_platforming',
+  mechanicHint: 'Plataformas suspendidas en altura: sincroniza el sprint y el impulso de salto.',
   parTimeSeconds: 120,
   rewards: { xp: 200, coins: 80 },
   spawn: new THREE.Vector3(0, 0.9, 0),

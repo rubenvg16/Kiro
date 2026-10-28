@@ -243,6 +243,33 @@ export class AvatarModel {
   }
 
   /**
+   * Aplica un accesorio en tiempo real a la escena 3D sin recargar.
+   */
+  public applyAccessory(itemId: string): void {
+    if (itemId === 'glasses') {
+      this.glassesGroup.visible = true;
+      this.capGroup.visible = false;
+      this.backpackGroup.visible = false;
+    } else if (itemId === 'cap' || itemId.includes('hat') || itemId.includes('gorra')) {
+      this.capGroup.visible = true;
+      this.glassesGroup.visible = false;
+      this.backpackGroup.visible = false;
+    } else if (itemId === 'backpack' || itemId.includes('backpack') || itemId.includes('mochila')) {
+      this.backpackGroup.visible = true;
+      this.glassesGroup.visible = false;
+      this.capGroup.visible = false;
+    } else if (itemId === 'none') {
+      this.glassesGroup.visible = false;
+      this.capGroup.visible = false;
+      this.backpackGroup.visible = false;
+    } else {
+      this.glassesGroup.visible = itemId.includes('glasses');
+      this.capGroup.visible = itemId.includes('cap') || itemId.includes('hat');
+      this.backpackGroup.visible = itemId.includes('backpack');
+    }
+  }
+
+  /**
    * Actualiza las animaciones de idle, caminata, carrera y salto.
    *
    * `baseY` es la altura real del suelo bajo el avatar: el bobbing se aplica
