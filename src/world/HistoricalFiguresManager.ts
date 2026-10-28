@@ -7,6 +7,7 @@ export interface HistoricalFigure {
   title: string;
   era: string;
   badge: string;
+  puzzleId: string;
   position: THREE.Vector3;
   mesh: THREE.Group;
   head: THREE.Group;
@@ -30,7 +31,7 @@ export class HistoricalFiguresManager {
     // 1. Santiago Ramón y Cajal (Nobel de Medicina 1906)
     const cajalGroup = this.buildFigureModel({
       skinColor: 0xf5cda6,
-      coatColor: 0x1e293b, // Traje formal oscuro de 1900
+      coatColor: 0x1e293b,
       pantsColor: 0x0f172a,
       hairColor: 0x94a3b8,
       hasMustache: true
@@ -44,12 +45,14 @@ export class HistoricalFiguresManager {
       title: 'Premio Nobel de Medicina y Padre de la Neurociencia',
       era: 'España (1852 - 1934)',
       badge: '🔬',
+      puzzleId: 'puzzle_cajal_synapse',
       position: new THREE.Vector3(-22, 0, 6),
       mesh: cajalGroup.group,
       head: cajalGroup.head,
       dialogue: [
         '¡Saludos, joven investigador! Todo hombre puede ser, si se lo propone, escultor de su propio cerebro.',
         'Con paciencia y mi humilde microscopio descubrí que las neuronas no forman una red continua, sino que dialogan entre sí a través de la sinapsis.',
+        'La voluntad y la disciplina son los mejores cinceles del talento mental.',
         '¿Aceptas el reto de reconstruir el circuito eléctrico de una neurona para ganar la Medalla Científica?'
       ],
       puzzleAction: () => this.puzzleEngine.launchCajalSynapse()
@@ -58,10 +61,10 @@ export class HistoricalFiguresManager {
     // 2. Miguel de Cervantes Saavedra
     const cervantesGroup = this.buildFigureModel({
       skinColor: 0xfcd34d,
-      coatColor: 0x7c2d12, // Jubón renacentista
+      coatColor: 0x7c2d12,
       pantsColor: 0x451a03,
       hairColor: 0x78716c,
-      hasRuff: true // Gola blanca renacentista
+      hasRuff: true
     });
     cervantesGroup.group.position.set(14, 0, -4);
     this.group.add(cervantesGroup.group);
@@ -72,12 +75,14 @@ export class HistoricalFiguresManager {
       title: 'Príncipe de los Ingenios de la Literatura Española',
       era: 'Siglo de Oro (1547 - 1616)',
       badge: '📜',
+      puzzleId: 'puzzle_cervantes_cipher',
       position: new THREE.Vector3(14, 0, -4),
       mesh: cervantesGroup.group,
       head: cervantesGroup.head,
       dialogue: [
         '¡Pardiez, noble hidalgo! Quien lee mucho y anda mucho, ve mucho y sabe mucho.',
         'Dejé escritas las aventuras de don Quijote y Sancho Panza en un lugar de la Mancha de cuyo nombre no quiero acordarme.',
+        'La pluma es la lengua del alma; cuales fueren los conceptos engendrados, tales serán los escritos.',
         'He protegido un pasaje secreto con un cifrado de desplazamiento. ¿Serás capaz de descifrarlo?'
       ],
       puzzleAction: () => this.puzzleEngine.launchCervantesCipher()
@@ -86,7 +91,7 @@ export class HistoricalFiguresManager {
     // 3. Pitágoras de Samos
     const pythagorasGroup = this.buildFigureModel({
       skinColor: 0xf5cda6,
-      coatColor: 0xf8fafc, // Túnica griega blanca
+      coatColor: 0xf8fafc,
       pantsColor: 0xe2e8f0,
       hairColor: 0xd1d5db,
       hasTogaTrim: true
@@ -100,15 +105,105 @@ export class HistoricalFiguresManager {
       title: 'Filósofo y Matemático Griego',
       era: 'Grecia Clásica (c. 570 - c. 495 a. C.)',
       badge: '📐',
+      puzzleId: 'puzzle_algebra_balance',
       position: new THREE.Vector3(-6, 0, 6),
       mesh: pythagorasGroup.group,
       head: pythagorasGroup.head,
       dialogue: [
-        '¡Salve! Los números rigen el cosmos y la armonía del universo.',
+        '¡Salve! Los números rigen el cosmos y la armonía del universo entero.',
         'En los triángulos rectángulos descubrí que el cuadrado de la hipotenusa iguala la suma de los cuadrados de los catetos.',
+        'La música y la astronomía son ramas hermanadas por proporciones numéricas puras.',
         'Para entender el álgebra moderna debes dominar el equilibrio. ¿Te atreves con la Balanza Algebraica?'
       ],
       puzzleAction: () => this.puzzleEngine.launchAlgebraBalance()
+    });
+
+    // 4. Ada Lovelace
+    const adaGroup = this.buildFigureModel({
+      skinColor: 0xf5cda6,
+      coatColor: 0x4c1d95,
+      pantsColor: 0x2e1065,
+      hairColor: 0x171717
+    });
+    adaGroup.group.position.set(22, 0, 36);
+    this.group.add(adaGroup.group);
+
+    this.figures.push({
+      id: 'ada_lovelace',
+      name: 'Ada Lovelace',
+      title: 'Madre de la Programación y Primera Algoritmista',
+      era: 'Inglaterra Victoriana (1815 - 1852)',
+      badge: '💻',
+      puzzleId: 'puzzle_ada_algorithm',
+      position: new THREE.Vector3(22, 0, 36),
+      mesh: adaGroup.group,
+      head: adaGroup.head,
+      dialogue: [
+        '¡Saludos! La máquina analítica teje dibujos algebraicos tal como el telar de Jacquard teje flores.',
+        'Fui la primera en comprender que las computadoras no solo procesarían números, sino cualquier símbolo o música.',
+        'La imaginación poética y la ciencia analítica son aliadas inseparables.',
+        '¿Quieres programar una secuencia de instrucciones para completar el reto lógico computacional?'
+      ],
+      puzzleAction: () => this.puzzleEngine.launchAlgebraBalance()
+    });
+
+    // 5. Hipatia de Alejandría
+    const hipatiaGroup = this.buildFigureModel({
+      skinColor: 0xfcd34d,
+      coatColor: 0x065f46,
+      pantsColor: 0x064e3b,
+      hairColor: 0x78350f,
+      hasTogaTrim: true
+    });
+    hipatiaGroup.group.position.set(2, 0, 28);
+    this.group.add(hipatiaGroup.group);
+
+    this.figures.push({
+      id: 'hipatia',
+      name: 'Hipatia de Alejandría',
+      title: 'Astrónoma, Matemática y Filósofa Neoplatónica',
+      era: 'Alejandría (c. 360 - 415 d. C.)',
+      badge: '🌌',
+      puzzleId: 'puzzle_hypatia_astronomy',
+      position: new THREE.Vector3(2, 0, 28),
+      mesh: hipatiaGroup.group,
+      head: hipatiaGroup.head,
+      dialogue: [
+        'Defiende tu derecho a pensar: incluso equivocarse es mejor que no pensar en absoluto.',
+        'Perfeccioné el astrolabio y estudié las órbitas de los cuerpos celestes con geometría cónica.',
+        'La verdad nunca teme a las preguntas razonadas.',
+        '¿Aceptas el reto de alinear las constelaciones para descubrir la trayectoria estelar?'
+      ],
+      puzzleAction: () => this.puzzleEngine.launchAlgebraBalance()
+    });
+
+    // 6. Marie Curie
+    const curieGroup = this.buildFigureModel({
+      skinColor: 0xf5cda6,
+      coatColor: 0x374151,
+      pantsColor: 0x1f2937,
+      hairColor: 0x4b5563
+    });
+    curieGroup.group.position.set(28, 0, 24);
+    this.group.add(curieGroup.group);
+
+    this.figures.push({
+      id: 'marie_curie',
+      name: 'Marie Curie',
+      title: 'Doble Premio Nobel de Física y Química',
+      era: 'Polonia / Francia (1867 - 1934)',
+      badge: '⚗️',
+      puzzleId: 'puzzle_curie_elements',
+      position: new THREE.Vector3(28, 0, 24),
+      mesh: curieGroup.group,
+      head: curieGroup.head,
+      dialogue: [
+        'En la vida no hay cosas que temer, solo cosas que comprender.',
+        'Aislé el polonio y el radio tras años de perseverancia en un humilde laboratorio de París.',
+        'La ciencia es profundamente desinteresada y pertenece a toda la humanidad.',
+        '¿Te atreves a clasificar los elementos de la tabla periódica y aislar el isótopo correcto?'
+      ],
+      puzzleAction: () => this.puzzleEngine.launchCajalSynapse()
     });
   }
 
@@ -138,54 +233,55 @@ export class HistoricalFiguresManager {
     head.add(hairMesh);
 
     // Ojos
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
-    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.02), eyeMat);
-    eyeL.position.set(-0.09, 0.02, 0.185);
-    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.02), eyeMat);
-    eyeR.position.set(0.09, 0.02, 0.185);
-    head.add(eyeL, eyeR);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+    const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.04), eyeMat);
+    leftEye.position.set(-0.08, 0.03, 0.18);
+    head.add(leftEye);
 
-    // Bigote histórico (Cajal)
+    const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.04), eyeMat);
+    rightEye.position.set(0.08, 0.03, 0.18);
+    head.add(rightEye);
+
     if (config.hasMustache) {
-      const mustache = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.05, 0.06),
-        new THREE.MeshStandardMaterial({ color: 0x334155 })
-      );
-      mustache.position.set(0, -0.06, 0.2);
+      const mustacheMat = new THREE.MeshStandardMaterial({ color: config.hairColor, roughness: 0.9 });
+      const mustache = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.06), mustacheMat);
+      mustache.position.set(0, -0.08, 0.18);
       head.add(mustache);
     }
 
-    // Gola renacentista (Cervantes)
     if (config.hasRuff) {
       const ruffMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
-      const ruff = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.12, 16), ruffMat);
+      const ruff = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.1, 16), ruffMat);
       ruff.position.set(0, -0.22, 0);
       head.add(ruff);
     }
 
     group.add(head);
 
-    // Cuerpo
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.58, 0.28), coatMat);
-    body.position.set(0, 1.0, 0);
-    group.add(body);
+    // Torso
+    const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.72, 0.34), coatMat);
+    torsoMesh.position.set(0, 0.96, 0);
+    torsoMesh.castShadow = true;
+    group.add(torsoMesh);
 
     if (config.hasTogaTrim) {
-      const goldTrim = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.6, 0.3),
-        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.6, roughness: 0.3 })
-      );
-      goldTrim.position.set(0.1, 1.0, 0.01);
-      goldTrim.rotation.z = -0.3;
-      group.add(goldTrim);
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 });
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.73, 0.36), trimMat);
+      trim.position.set(0.12, 0.96, 0);
+      group.add(trim);
     }
 
     // Piernas
-    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.52, 0.2), pantsMat);
-    legL.position.set(-0.12, 0.48, 0);
-    const legR = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.52, 0.2), pantsMat);
-    legR.position.set(0.12, 0.48, 0);
-    group.add(legL, legR);
+    const legGeo = new THREE.BoxGeometry(0.24, 0.6, 0.26);
+    const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+    leftLeg.position.set(-0.16, 0.3, 0);
+    leftLeg.castShadow = true;
+    group.add(leftLeg);
+
+    const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+    rightLeg.position.set(0.16, 0.3, 0);
+    rightLeg.castShadow = true;
+    group.add(rightLeg);
 
     group.traverse((c) => {
       if (c instanceof THREE.Mesh) {
