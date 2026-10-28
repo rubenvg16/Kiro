@@ -538,7 +538,7 @@ export class LevelBuilder {
       z: o.z,
       w: w - 0.2,
       h: h - 0.5,
-      d: 0.2,
+      d: d > 0 ? d : 0.2,
       color: 0x0284c7,
       emissive: 0x38bdf8
     });

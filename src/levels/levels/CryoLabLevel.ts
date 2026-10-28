@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { LEVEL_COLORS } from '../LevelBuilder';
 import type { LevelDefinition } from '../types';
 
 export const CRYO_LAB_LEVEL: LevelDefinition = {

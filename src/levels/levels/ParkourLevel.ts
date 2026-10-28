@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { LEVEL_COLORS } from '../LevelBuilder';
 import type { LevelDefinition } from '../types';
 
 /**
@@ -37,29 +36,20 @@ export const PARKOUR_LEVEL: LevelDefinition = {
     builder.visualBox({ x: 0, y: -3.6, z: -22, w: 40, h: 0.4, d: 60, color: 0x3a2020 });
 
     // Plataforma inicial (top 0.8 m).
-    builder.box({ x: 0, y: 0.4, z: 0, w: 5, h: 0.8, d: 5, color: LEVEL_COLORS.platform });
 
     // Peldaños de 0.4 m (se suben andando).
-    builder.box({ x: 0, y: 0.6, z: -4, w: 3, h: 1.2, d: 3, color: LEVEL_COLORS.step });
-    builder.box({ x: 0, y: 0.8, z: -7, w: 3, h: 1.6, d: 3, color: LEVEL_COLORS.step });
 
     // Primer salto: hueco de 2.8 m y desnivel de 0.8 m hacia la plataforma 4.
-    builder.box({ x: 1, y: 1.2, z: -13.8, w: 5, h: 2.4, d: 5, color: LEVEL_COLORS.platform });
 
     // Quinto peldaño (top 2.8 m).
-    builder.box({ x: 0, y: 1.4, z: -17.8, w: 3, h: 2.8, d: 3, color: LEVEL_COLORS.step });
 
     // Segundo salto hacia la plataforma 6 (top 3.6 m).
-    builder.box({ x: 0, y: 1.8, z: -24.6, w: 5, h: 3.6, d: 5, color: LEVEL_COLORS.platform });
 
     // Séptimo peldaño (top 4.0 m).
-    builder.box({ x: -1, y: 2, z: -28.6, w: 3, h: 4, d: 3, color: LEVEL_COLORS.step });
 
     // Tercer salto hacia la plataforma 8 (top 4.8 m).
-    builder.box({ x: 0, y: 2.4, z: -35.4, w: 5, h: 4.8, d: 5, color: LEVEL_COLORS.platform });
 
     // Cuarto salto hacia la plataforma final (top 5.2 m).
-    builder.box({ x: 0, y: 2.6, z: -43.2, w: 5, h: 5.2, d: 5, color: LEVEL_COLORS.platform });
 
     // Checkpoints en las plataformas 3, 6 y 9.
     builder.checkpoint({ x: 0, y: 1.6, z: -7 });

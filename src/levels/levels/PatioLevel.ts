@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { LEVEL_COLORS } from '../LevelBuilder';
 import type { LevelDefinition } from '../types';
 
 /**
@@ -25,28 +24,16 @@ export const PATIO_LEVEL: LevelDefinition = {
     const { builder } = ctx;
 
     // Suelo del patio: la superficie superior queda en y = 0.
-    builder.box({ x: 0, y: -0.5, z: 0, w: 30, h: 1, d: 30, color: LEVEL_COLORS.floor, roughness: 0.95 });
 
     // Muro perimetral bajo (cara interior en ±15).
-    builder.box({ x: -15.2, y: 1, z: 0, w: 0.4, h: 2, d: 30.8, color: LEVEL_COLORS.wall });
-    builder.box({ x: 15.2, y: 1, z: 0, w: 0.4, h: 2, d: 30.8, color: LEVEL_COLORS.wall });
-    builder.box({ x: 0, y: 1, z: -15.2, w: 30.8, h: 2, d: 0.4, color: LEVEL_COLORS.wall });
-    builder.box({ x: 0, y: 1, z: 15.2, w: 30.8, h: 2, d: 0.4, color: LEVEL_COLORS.wall });
 
     // Escalera de 3 peldaños de 0.4 m (topes en 0.4, 0.8 y 1.2).
-    builder.box({ x: -6, y: 0.2, z: 0, w: 3, h: 0.4, d: 3, color: LEVEL_COLORS.step });
-    builder.box({ x: -3, y: 0.4, z: 0, w: 3, h: 0.8, d: 3, color: LEVEL_COLORS.step });
-    builder.box({ x: 0, y: 0.6, z: 0, w: 3, h: 1.2, d: 3, color: LEVEL_COLORS.step });
 
     // Plataforma a 1.6 m: se llega desde el peldaño 3 (desnivel de 0.4 m).
-    builder.box({ x: 4.5, y: 0.8, z: 0, w: 6, h: 1.6, d: 3, color: LEVEL_COLORS.platform });
 
     // Bloque de 1.2 m con una ficha encima.
-    builder.box({ x: 10, y: 0.6, z: 0, w: 2, h: 1.2, d: 2, color: LEVEL_COLORS.brick });
 
     // Jardineras decorativas.
-    builder.box({ x: -11, y: 0.3, z: 9, w: 2.4, h: 0.6, d: 2.4, color: LEVEL_COLORS.green });
-    builder.box({ x: 11, y: 0.3, z: -9, w: 2.4, h: 0.6, d: 2.4, color: LEVEL_COLORS.green });
 
     // 6 fichas: 3 en el suelo, 2 en la plataforma y 1 en el bloque alto.
     builder.collectible({ x: -9, y: 0.9, z: -6 });

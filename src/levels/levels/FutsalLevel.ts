@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { LEVEL_COLORS } from '../LevelBuilder';
 import type { LevelDefinition } from '../types';
 
 /**
@@ -25,29 +24,17 @@ export const FUTSAL_LEVEL: LevelDefinition = {
     const { builder } = ctx;
 
     // Pista de 34 x 24 con la superficie en y = 0.
-    builder.box({ x: 0, y: -0.5, z: 0, w: 34, h: 1, d: 24, color: LEVEL_COLORS.floor, roughness: 0.9 });
 
     // Muros perimetrales (caras interiores en x = ±17 y z = ±12).
-    builder.box({ x: -17.2, y: 1.5, z: 0, w: 0.4, h: 3, d: 24.8, color: LEVEL_COLORS.wall });
-    builder.box({ x: 17.2, y: 1.5, z: 0, w: 0.4, h: 3, d: 24.8, color: LEVEL_COLORS.wall });
-    builder.box({ x: 0, y: 1.5, z: -12.2, w: 34.8, h: 3, d: 0.4, color: LEVEL_COLORS.wall });
-    builder.box({ x: 0, y: 1.5, z: 12.2, w: 34.8, h: 3, d: 0.4, color: LEVEL_COLORS.wall });
 
     // Porterías: dos laterales por portería que atrapan la pelota dentro.
     for (const side of [-1, 1]) {
       const goalX = side * 15.75;
-      builder.box({ x: goalX, y: 0.6, z: -2.2, w: 2.5, h: 1.2, d: 0.4, color: LEVEL_COLORS.green });
-      builder.box({ x: goalX, y: 0.6, z: 2.2, w: 2.5, h: 1.2, d: 0.4, color: LEVEL_COLORS.green });
       // Travesaño decorativo (sin colisionador para no estorbar al salto).
-      builder.visualBox({ x: goalX, y: 3.1, z: 0, w: 0.35, h: 0.35, d: 4.8, color: LEVEL_COLORS.gold });
       builder.targetZone({ id: 'goal', x: goalX, y: 0, z: 0, w: 4, h: 2.5, d: 2.5 });
     }
 
     // Cuatro barreras bajas (1.2 m) que crean ángulos sin cerrar el pasillo central.
-    builder.box({ x: -8, y: 0.6, z: -5, w: 8, h: 1.2, d: 0.4, color: LEVEL_COLORS.step });
-    builder.box({ x: -5.8, y: 0.6, z: -8, w: 0.4, h: 1.2, d: 6, color: LEVEL_COLORS.step });
-    builder.box({ x: 8, y: 0.6, z: 5, w: 8, h: 1.2, d: 0.4, color: LEVEL_COLORS.step });
-    builder.box({ x: 5.8, y: 0.6, z: 8, w: 0.4, h: 1.2, d: 6, color: LEVEL_COLORS.step });
 
     // Tres pelotas dinámicas en el centro de la pista.
     builder.ball({ x: -3, y: 0.35, z: 0, r: 0.35, mass: 1.2, restitution: 0.45, friction: 0.4 });

@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { LEVEL_COLORS } from '../LevelBuilder';
 import type { LevelDefinition } from '../types';
 
 /**
@@ -27,30 +26,19 @@ export const RELOJ_LEVEL: LevelDefinition = {
     const { builder } = ctx;
 
     // Base de la torre (superficie en y = 0).
-    builder.box({ x: 0, y: -0.5, z: 0, w: 16, h: 1, d: 16, color: LEVEL_COLORS.floor, roughness: 0.95 });
 
     // Muros perimetrales de la base.
-    builder.box({ x: -8.2, y: 1.25, z: 0, w: 0.4, h: 2.5, d: 16.8, color: LEVEL_COLORS.wall });
-    builder.box({ x: 8.2, y: 1.25, z: 0, w: 0.4, h: 2.5, d: 16.8, color: LEVEL_COLORS.wall });
-    builder.box({ x: 0, y: 1.25, z: -8.2, w: 16.8, h: 2.5, d: 0.4, color: LEVEL_COLORS.wall });
-    builder.box({ x: 0, y: 1.25, z: 8.2, w: 16.8, h: 2.5, d: 0.4, color: LEVEL_COLORS.wall });
 
     // Segundo cuerpo: losa de 10 x 6 con la superficie en y = 1.8.
-    builder.box({ x: 0, y: 1.6, z: 0, w: 10, h: 0.4, d: 6, color: LEVEL_COLORS.platform });
 
     // Escalón estático de 0.9 m para subir al segundo cuerpo (deja 0.45 m de
     // hueco con la losa para que la cápsula no nazca dentro de la losa).
-    builder.box({ x: 0, y: 0.45, z: 4.7, w: 2.5, h: 0.9, d: 2.5, color: LEVEL_COLORS.step });
 
     // Pilar de 2.6 m para subir a la torre (0.8 m por encima de la losa).
-    builder.box({ x: 0, y: 1.3, z: -4.25, w: 2, h: 2.6, d: 2, color: LEVEL_COLORS.step });
 
     // Tercer cuerpo: losa de 6 x 6 con la superficie en y = 3.4.
-    builder.box({ x: 0, y: 3.2, z: -8, w: 6, h: 0.4, d: 6, color: LEVEL_COLORS.platform });
 
     // Corner del reloj: dos muros que forman el corral donde entra la pelota.
-    builder.box({ x: 5.85, y: 0.6, z: -3.9, w: 4.5, h: 1.2, d: 0.4, color: LEVEL_COLORS.gold });
-    builder.box({ x: 7.5, y: 0.6, z: -5.8, w: 0.4, h: 1.2, d: 3.4, color: LEVEL_COLORS.gold });
     builder.targetZone({ id: 'goal', x: 5.65, y: 0, z: -5.8, w: 3.3, h: 2, d: 3.4 });
 
     // Dos pelotas en la base para empujar al corner.

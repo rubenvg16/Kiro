@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { LEVEL_COLORS } from '../LevelBuilder';
 import type { LevelDefinition } from '../types';
 
 /**
@@ -26,26 +25,8 @@ export const HUERTO_LEVEL: LevelDefinition = {
     const { builder } = ctx;
 
     // Terreno del huerto con la superficie en y = 0.
-    builder.box({ x: 0, y: -0.5, z: 0, w: 32, h: 1, d: 32, color: LEVEL_COLORS.soil, roughness: 1 });
 
     // Seto perimetral (caras interiores en ±16).
-    builder.box({ x: -16.2, y: 0.75, z: 0, w: 0.4, h: 1.5, d: 32.8, color: LEVEL_COLORS.green });
-    builder.box({ x: 16.2, y: 0.75, z: 0, w: 0.4, h: 1.5, d: 32.8, color: LEVEL_COLORS.green });
-    builder.box({ x: 0, y: 0.75, z: -16.2, w: 32.8, h: 1.5, d: 0.4, color: LEVEL_COLORS.green });
-    builder.box({ x: 0, y: 0.75, z: 16.2, w: 32.8, h: 1.5, d: 0.4, color: LEVEL_COLORS.green });
-
-    // Seis bancales de cultivo de 0.5 m en retícula 3 x 2.
-    for (const bedX of [-9, 0, 9]) {
-      for (const bedZ of [-4, 4]) {
-        builder.box({ x: bedX, y: 0.25, z: bedZ, w: 5, h: 0.5, d: 4, color: LEVEL_COLORS.wood });
-      }
-    }
-
-    // Escalón de 0.9 m y plataforma de 1.8 m (desnivel de 0.9 m, saltable).
-    // El escalón deja 1.1 m de hueco con la plataforma: el jugador sube de un
-    // salto de 0.9 m de alto mientras cruza el hueco.
-    builder.box({ x: 0, y: 0.45, z: -7.9, w: 3, h: 0.9, d: 2, color: LEVEL_COLORS.step });
-    builder.box({ x: 0, y: 0.9, z: -12, w: 8, h: 1.8, d: 4, color: LEVEL_COLORS.platform });
 
     // Tres cajones dinámicos: hay que apartarlos del paso.
     builder.crate({ x: -3.5, y: 0.45, z: -4, size: 0.9, mass: 2 });

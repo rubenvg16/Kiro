@@ -184,6 +184,14 @@ export class LevelManager {
     return CampaignProgressStore.isUnlocked(this.progress, id, this.levelOrder);
   }
 
+  public isChallengeVariantUnlocked(id: string): boolean {
+    return this.progress.results[id]?.challengeVariantUnlocked === true;
+  }
+
+  public hasLevelBadge(id: string): boolean {
+    return CampaignProgressStore.hasLevelBadge(this.progress, `badge_${id}`);
+  }
+
   public getStars(id: string): number {
     return this.progress.results[id]?.stars ?? 0;
   }
@@ -413,6 +421,12 @@ export class LevelManager {
     const nextId = index >= 0 ? this.levelOrder[index + 1] : undefined;
     if (nextId && !this.progress.unlocked.includes(nextId)) {
       this.progress.unlocked.push(nextId);
+    }
+
+    // Otorga insignia de nivel si se consiguen 3 estrellas
+    if (this.stars >= 3) {
+      const badgeId = `badge_${level.id}`;
+      this.progress = CampaignProgressStore.addLevelBadge(this.progress, badgeId);
     }
     CampaignProgressStore.save(this.progress);
 
